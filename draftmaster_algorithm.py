@@ -9,17 +9,14 @@ def load_database():
     url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio.csv"
     try:
         df = pd.read_csv(url, encoding="utf-8")
-        df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")  # Rimuove spazi e mette tutto in minuscolo
+       df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_", regex=True)
+df.columns = df.columns.str.replace(r"[^\w\s]", "", regex=True)  # Rimuove caratteri speciali
         
         # Mappa i nomi corretti
-        column_map = {
-            "nome": "name",
-            "squadra": "team",
-            "ruolo": "role",
-            "media_voto_anno_precedente": "media_voto",
-            "fantamedia_anno_precedente": "fantamedia",
-            "quotazione": "cost"
-        }
+df = df.rename(columns=lambda x: column_map.get(x, x))
+
+# Converte i nomi delle colonne secondo la mappatura
+df = df.rename(columns=lambda x: column_map.get(x, x))
         
         df = df.rename(columns=column_map)
 
