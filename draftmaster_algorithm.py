@@ -8,7 +8,28 @@ import random
 def load_database():
     url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio.csv"
     try:
-        df = pd.read_csv(url, encoding="ISO-8859-1")
+        df = pd.read_csv(url, encoding="utf-8")
+df.columns = df.columns.str.strip().str.lower()  # Rimuove spazi e mette tutto in minuscolo
+
+# Mappa i nomi corretti
+column_map = {
+    "nome": "name",
+    "squadra": "team",
+    "ruolo": "role",
+    "media voto anno precedente": "media_voto",
+    "fantamedia anno precedente": "fantamedia",
+    "quotazione": "cost"
+}
+
+df = df.rename(columns=column_map)
+
+# Controllo colonne mancanti
+missing_columns = [col for col in column_map.values() if col not in df.columns]
+if missing_columns:
+    st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Controlla il file e riprova.")
+    return None
+
+return df.to_dict(orient='records')
     except Exception as e:
         st.error(f"Errore nel caricamento del database: {e}")
         return None
