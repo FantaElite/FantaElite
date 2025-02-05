@@ -7,7 +7,7 @@ import random
 @st.cache
 def load_database():
     url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio.csv"  # Cambia con il tuo link
-    df = pd.read_csv(url)
+    df = pd.read_csv(url, encoding="utf-8", errors="replace")
     return df.to_dict(orient='records')
 
 def generate_team(database, budget=500):
