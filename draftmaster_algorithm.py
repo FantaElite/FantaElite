@@ -8,7 +8,7 @@ import random
 def load_database():
     url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio.csv"
     try:
-        df = pd.read_csv(url, encoding="utf-8")
+        df = pd.read_csv(url, encoding="ISO-8859-1")
     except Exception as e:
         st.error(f"Errore nel caricamento del database: {e}")
         return None
