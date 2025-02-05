@@ -2,14 +2,16 @@ import streamlit as st
 import pandas as pd
 import os
 import random
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+def export_to_csv(team, file_name="squadra_fantacalcio.csv"):
+    df = pd.DataFrame(team)
+    return df.to_csv(index=False).encode('utf-8')
 
 # Carica il database Excel automaticamente
-DATABASE_FILE = os.path.join(os.path.expanduser("~"), "Desktop", "database_fantacalcio.xlsx")
-
+@st.cache
 def load_database():
-    df = pd.read_excel(DATABASE_FILE)
+    url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio.csv"  # Cambia con il tuo link
+    df = pd.read_csv(url)
+    return df.to_dict(orient='records')
 
     # Definizione delle colonne corrette
     expected_columns = {
@@ -102,6 +104,5 @@ if st.button("Genera Squadra"):
         for player in team:
             st.write(f"{player['role']}: {player['name']} ({player['team']}) - Cost: {player['cost']} - Fantamedia: {player['fantamedia']:.2f}")
         
-        pdf_path = export_to_pdf(team)
-        with open(pdf_path, "rb") as f:
-            st.download_button("Scarica PDF", f, file_name="squadra_fantacalcio.pdf", mime="application/pdf")
+       csv_data = export_to_csv(team)
+st.download_button("Scarica CSV", csv_data, file_name="squadra_fantacalcio.csv", mime="text/csv")
