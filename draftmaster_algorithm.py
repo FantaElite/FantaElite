@@ -24,10 +24,13 @@ def load_database():
         
         df = df.rename(columns=lambda x: column_map.get(x, x))
 
-        # Converti cost e fantamedia in numeri
+        # Converti cost, media_voto e fantamedia in numeri
         df["cost"] = pd.to_numeric(df["cost"], errors="coerce")
         df["fantamedia"] = pd.to_numeric(df["fantamedia"], errors="coerce")
         df["media_voto"] = pd.to_numeric(df["media_voto"], errors="coerce")
+
+        # Riempie i valori NaN con 0 per evitare problemi di visualizzazione
+        df.fillna(0, inplace=True)
 
         # Controllo colonne mancanti
         missing_columns = [col for col in column_map.values() if col not in df.columns]
@@ -94,7 +97,7 @@ if st.button("Genera Squadra"):
     else:
         st.success(f"Squadra generata con successo! Costo totale: {total_cost}")
         for player in team:
-            st.write(f"{player['role']}: {player['name']} ({player['team']}) - Cost: {player['cost']} - Fantamedia: {player['fantamedia']:.2f}")
+            st.write(f"{player['role']}: {player['name']} ({player['team']}) - Cost: {player['cost']} - Fantamedia: {player['fantamedia']:.2f} - Media Voto: {player['media_voto']:.2f}")
         
         csv_data = export_to_csv(team)
         st.download_button("Scarica CSV", csv_data, file_name="squadra_fantacalcio.csv", mime="text/csv")
