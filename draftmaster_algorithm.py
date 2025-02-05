@@ -27,6 +27,7 @@ def load_database():
         # Converti cost e fantamedia in numeri
         df["cost"] = pd.to_numeric(df["cost"], errors="coerce")
         df["fantamedia"] = pd.to_numeric(df["fantamedia"], errors="coerce")
+        df["media_voto"] = pd.to_numeric(df["media_voto"], errors="coerce")
 
         # Controllo colonne mancanti
         missing_columns = [col for col in column_map.values() if col not in df.columns]
@@ -74,7 +75,7 @@ def generate_team(database, budget=500):
 
 def export_to_csv(team):
     df = pd.DataFrame(team)
-    return df.to_csv(index=False).encode('utf-8')
+    return df.to_csv(index=False, sep=';', decimal=',', encoding='utf-8').encode('utf-8')
 
 # Web App con Streamlit
 st.title("FantaElite - Generatore di Rose Fantacalcio")
