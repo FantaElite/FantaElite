@@ -24,6 +24,10 @@ def load_database():
         
         df = df.rename(columns=lambda x: column_map.get(x, x))
 
+        # Converti cost e fantamedia in numeri
+        df["cost"] = pd.to_numeric(df["cost"], errors="coerce")
+        df["fantamedia"] = pd.to_numeric(df["fantamedia"], errors="coerce")
+
         # Controllo colonne mancanti
         missing_columns = [col for col in column_map.values() if col not in df.columns]
         if missing_columns:
@@ -60,7 +64,7 @@ def generate_team(database, budget=500):
             return None, None
 
         team.extend(selected)
-        total_cost += sum(player['cost'] for player in selected)
+        total_cost += sum(player['cost'] for player in selected if isinstance(player['cost'], (int, float)))
     
     if total_cost > budget:
         st.warning(f"Sforato il budget ({total_cost} > {budget}), rigenerando...")
