@@ -6,8 +6,12 @@ import random
 # Carica il database Excel automaticamente
 @st.cache
 def load_database():
-    url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio.csv"  # Cambia con il tuo link
-    df = pd.read_csv(url, encoding="utf-8", errors="replace")
+    url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio.csv"
+    try:
+        df = pd.read_csv(url, encoding="utf-8")
+    except Exception as e:
+        st.error(f"Errore nel caricamento del database: {e}")
+        return None
     return df.to_dict(orient='records')
 
 def generate_team(database, budget=500):
