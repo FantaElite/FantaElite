@@ -32,8 +32,8 @@ def load_database():
         # Riempie solo i valori NaN in cost con 0 per evitare problemi di visualizzazione
         df["cost"].fillna(0, inplace=True)
 
-        # Mantiene solo i giocatori con valori validi di media_voto e fantamedia
-        df = df.dropna(subset=["media_voto", "fantamedia"], how='any')
+        # Se fantamedia è presente ma media voto è NaN, assegna media_voto = fantamedia
+        df.loc[df["media_voto"].isna() & df["fantamedia"].notna(), "media_voto"] = df["fantamedia"]
 
         # Controllo colonne mancanti
         missing_columns = [col for col in column_map.values() if col not in df.columns]
