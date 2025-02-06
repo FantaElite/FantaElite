@@ -8,7 +8,7 @@ import random
 def load_database():
     url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio.csv"
     try:
-        df = pd.read_csv(url, encoding="utf-8", delimiter=';')  # Usa il delimitatore corretto
+        df = pd.read_csv(url, encoding="utf-8", delimiter=';', dtype=str).apply(lambda x: x.str.strip() if x.dtype == "object" else x)
         df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_", regex=True)
         df.columns = df.columns.str.replace(r"[^\w]", "", regex=True)  # Rimuove caratteri speciali e accenti
         
@@ -24,13 +24,16 @@ def load_database():
         
         df = df.rename(columns=lambda x: column_map.get(x, x))
 
-        # Converti cost, media_voto e fantamedia in numeri
-        df["cost"] = pd.to_numeric(df["cost"], errors="coerce")
-        df["fantamedia"] = pd.to_numeric(df["fantamedia"], errors="coerce")
-        df["media_voto"] = pd.to_numeric(df["media_voto"], errors="coerce")
+        # Converti cost, media_voto e fantamedia in numeri correggendo eventuali virgole nei decimali
+        df["cost"] = pd.to_numeric(df["cost"].str.replace(",", "."), errors="coerce")
+        df["fantamedia"] = pd.to_numeric(df["fantamedia"].str.replace(",", "."), errors="coerce")
+        df["media_voto"] = pd.to_numeric(df["media_voto"].str.replace(",", "."), errors="coerce")
 
-        # Riempie i valori NaN con 0 per evitare problemi di visualizzazione
-        df.fillna(0, inplace=True)
+        # Riempie solo i valori NaN in cost con 0 per evitare problemi di visualizzazione
+        df["cost"].fillna(0, inplace=True)
+
+        # Mantiene solo i giocatori con valori validi di media_voto e fantamedia
+        df = df.dropna(subset=["media_voto", "fantamedia"], how='any')
 
         # Controllo colonne mancanti
         missing_columns = [col for col in column_map.values() if col not in df.columns]
