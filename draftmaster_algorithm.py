@@ -8,7 +8,7 @@ import random
 def load_database():
     url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio.csv"
     try:
-        df = pd.read_csv(url, encoding="utf-8", delimiter=';', dtype=str)
+        df = pd.read_csv(url, encoding="utf-8", delimiter=';')
         
         # Rimuove eventuali spazi prima e dopo i nomi delle colonne
         df.columns = df.columns.str.strip()
