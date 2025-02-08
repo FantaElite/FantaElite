@@ -66,8 +66,6 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
         # Applicazione della strategia
         if strategy == "Top Player Oriented":
             players = sorted(players, key=lambda x: (x['fantamedia'], x['media_voto']), reverse=True)
-        elif strategy == "Budget Balanced":
-            players = sorted(players, key=lambda x: (x['fantamedia'] / x['cost'] if x['cost'] > 0 else 0), reverse=True)
         elif strategy == "Squadra Diversificata":
             team_squadre = set([p['team'] for p in team])
             players = [p for p in players if p['team'] not in team_squadre]
@@ -108,7 +106,7 @@ if database is None:
 budget = st.number_input("Inserisci il budget", min_value=100, max_value=1000, value=500, step=10)
 
 # Menu a tendina per selezionare la strategia
-strategy = st.selectbox("Seleziona la strategia di generazione", ["Equilibrata", "Top Player Oriented", "Budget Balanced", "Squadra Diversificata", "Modificatore di Difesa"])
+strategy = st.selectbox("Seleziona la strategia di generazione", ["Equilibrata", "Top Player Oriented", "Squadra Diversificata", "Modificatore di Difesa"])
 
 if st.button("Genera Squadra"):
     team, total_cost = generate_team(database, budget, strategy)
