@@ -8,20 +8,20 @@ import random
 def load_database():
     url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio.csv"
     try:
-        df = pd.read_csv(url, encoding="utf-8", delimiter=';', dtype=str).apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+        df = pd.read_csv(url, encoding="utf-8", delimiter=';', dtype=str)
         
-        # Mappa i nomi corretti
-        column_map = {
-            "Nome": "Nome",
-            "Squadra": "Squadra",
-            "Ruolo": "Ruolo",
-            "Media Voto": "Media Voto",
-            "Fantamedia": "Fantamedia",
-            "Quotazione": "Quotazione",
-            "Partite a Voto": "Partite a Voto"
-        }
+        # Rimuove eventuali spazi prima e dopo i nomi delle colonne
+        df.columns = df.columns.str.strip()
         
-        df = df.rename(columns=lambda x: column_map.get(x, x))
+        # Mappa i nomi corretti senza modificare il testo originale
+        expected_columns = [
+            "Nome", "Squadra", "Ruolo", "Media Voto", "Fantamedia", "Quotazione", "Partite a Voto"
+        ]
+        
+        missing_columns = [col for col in expected_columns if col not in df.columns]
+        if missing_columns:
+            st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Controlla il file e riprova.")
+            return None
 
         # Converti le colonne numeriche correggendo eventuali virgole nei decimali
         df["Quotazione"] = pd.to_numeric(df["Quotazione"].str.replace(",", "."), errors="coerce")
@@ -34,12 +34,6 @@ def load_database():
 
         # Se Fantamedia è presente ma Media Voto è NaN, assegna Media Voto = Fantamedia
         df.loc[df["Media Voto"].isna() & df["Fantamedia"].notna(), "Media Voto"] = df["Fantamedia"]
-
-        # Controllo colonne mancanti
-        missing_columns = [col for col in column_map.values() if col not in df.columns]
-        if missing_columns:
-            st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Controlla il file e riprova.")
-            return None
 
         return df.to_dict(orient='records')
     except Exception as e:
