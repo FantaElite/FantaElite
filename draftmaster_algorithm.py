@@ -12,28 +12,28 @@ def load_database():
         
         # Mappa i nomi corretti
         column_map = {
-            "Nome": "name",
-            "Squadra": "team",
-            "Ruolo": "role",
-            "Media Voto": "media_voto",
-            "Fantamedia": "fantamedia",
-            "Quotazione": "cost",
-            "Partite a Voto": "appearances"
+            "Nome": "Nome",
+            "Squadra": "Squadra",
+            "Ruolo": "Ruolo",
+            "Media Voto": "Media Voto",
+            "Fantamedia": "Fantamedia",
+            "Quotazione": "Quotazione",
+            "Partite a Voto": "Partite a Voto"
         }
         
         df = df.rename(columns=lambda x: column_map.get(x, x))
 
-        # Converti cost, media_voto, fantamedia e presenze in numeri correggendo eventuali virgole nei decimali
-        df["cost"] = pd.to_numeric(df["cost"].str.replace(",", "."), errors="coerce")
-        df["fantamedia"] = pd.to_numeric(df["fantamedia"].str.replace(",", "."), errors="coerce")
-        df["media_voto"] = pd.to_numeric(df["media_voto"].str.replace(",", "."), errors="coerce")
-        df["appearances"] = pd.to_numeric(df["appearances"].str.replace(",", "."), errors="coerce")
+        # Converti le colonne numeriche correggendo eventuali virgole nei decimali
+        df["Quotazione"] = pd.to_numeric(df["Quotazione"].str.replace(",", "."), errors="coerce")
+        df["Fantamedia"] = pd.to_numeric(df["Fantamedia"].str.replace(",", "."), errors="coerce")
+        df["Media Voto"] = pd.to_numeric(df["Media Voto"].str.replace(",", "."), errors="coerce")
+        df["Partite a Voto"] = pd.to_numeric(df["Partite a Voto"].str.replace(",", "."), errors="coerce")
 
-        # Riempie solo i valori NaN in cost con 0 per evitare problemi di visualizzazione
-        df["cost"].fillna(0, inplace=True)
+        # Riempie solo i valori NaN in Quotazione con 0 per evitare problemi di visualizzazione
+        df["Quotazione"].fillna(0, inplace=True)
 
-        # Se fantamedia è presente ma media voto è NaN, assegna media_voto = fantamedia
-        df.loc[df["media_voto"].isna() & df["fantamedia"].notna(), "media_voto"] = df["fantamedia"]
+        # Se Fantamedia è presente ma Media Voto è NaN, assegna Media Voto = Fantamedia
+        df.loc[df["Media Voto"].isna() & df["Fantamedia"].notna(), "Media Voto"] = df["Fantamedia"]
 
         # Controllo colonne mancanti
         missing_columns = [col for col in column_map.values() if col not in df.columns]
@@ -58,29 +58,29 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
     total_cost = 0
     
     for role, count in ROLES.items():
-        players = [p for p in database if p['role'] == role]
+        players = [p for p in database if p['Ruolo'] == role]
         if not players:
             st.error(f"Errore: Nessun giocatore disponibile per il ruolo {role}")
             return None, None
 
         # Considerazione delle presenze per determinare la titolarità
         for p in players:
-            if 'appearances' not in p or pd.isna(p['appearances']):
-                p['appearances'] = 0  # Default a 0 se mancante
+            if 'Partite a Voto' not in p or pd.isna(p['Partite a Voto']):
+                p['Partite a Voto'] = 0  # Default a 0 se mancante
         
         # Applicazione della strategia
         if strategy == "Top Player Oriented":
-            players = sorted(players, key=lambda x: (x['fantamedia'], x['media_voto'], x['appearances']), reverse=True)
+            players = sorted(players, key=lambda x: (x['Fantamedia'], x['Media Voto'], x['Partite a Voto']), reverse=True)
         elif strategy == "Squadra Diversificata":
-            team_squadre = set([p['team'] for p in team])
-            players = [p for p in players if p['team'] not in team_squadre]
+            team_squadre = set([p['Squadra'] for p in team])
+            players = [p for p in players if p['Squadra'] not in team_squadre]
         elif strategy == "Modificatore di Difesa":
             if role in ["Portiere", "Difensore"]:
-                players = sorted(players, key=lambda x: (x['media_voto'], x['fantamedia'], x['appearances']), reverse=True)
+                players = sorted(players, key=lambda x: (x['Media Voto'], x['Fantamedia'], x['Partite a Voto']), reverse=True)
             else:
-                players = sorted(players, key=lambda x: (x['fantamedia'], x['appearances']), reverse=True)
+                players = sorted(players, key=lambda x: (x['Fantamedia'], x['Partite a Voto']), reverse=True)
         else:  # Equilibrata
-            players = sorted(players, key=lambda x: (x['fantamedia'], x['appearances']), reverse=True)
+            players = sorted(players, key=lambda x: (x['Fantamedia'], x['Partite a Voto']), reverse=True)
         
         try:
             selected = random.sample(players[:20], count)  # Assicura varietà
@@ -89,7 +89,7 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
             return None, None
 
         team.extend(selected)
-        total_cost += sum(player['cost'] for player in selected if isinstance(player['cost'], (int, float)))
+        total_cost += sum(player['Quotazione'] for player in selected if isinstance(player['Quotazione'], (int, float)))
     
     if total_cost > budget:
         st.warning(f"Sforato il budget ({total_cost} > {budget}), rigenerando...")
@@ -121,7 +121,7 @@ if st.button("Genera Squadra"):
     else:
         st.success(f"Squadra generata con successo! Costo totale: {total_cost}")
         for player in team:
-            st.write(f"{player['role']}: {player['name']} ({player['team']}) - Cost: {player['cost']} - Fantamedia: {player['fantamedia']:.2f} - Media Voto: {player['media_voto']:.2f} - Presenze: {player['appearances']}")
+            st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Cost: {player['Quotazione']} - Fantamedia: {player['Fantamedia']:.2f} - Media Voto: {player['Media Voto']:.2f} - Presenze: {player['Partite a Voto']}")
         
         csv_data = export_to_csv(team)
         st.download_button("Scarica CSV", csv_data, file_name="squadra_fantacalcio.csv", mime="text/csv")
