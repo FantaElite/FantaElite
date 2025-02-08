@@ -17,19 +17,19 @@ def load_database():
             "nome": "name",
             "squadra": "team",
             "ruolo": "role",
-            "media_voto_anno_precedente": "media_voto",
-            "fantamedia_anno_precedente": "fantamedia",
+            "media_voto": "media_voto",
+            "fantamedia": "fantamedia",
             "quotazione": "cost",
-            "titolarita": "starter_probability"
+            "partite_a_voto": "appearances"
         }
         
         df = df.rename(columns=lambda x: column_map.get(x, x))
 
-        # Converti cost, media_voto, fantamedia e titolarità in numeri correggendo eventuali virgole nei decimali
+        # Converti cost, media_voto, fantamedia e presenze in numeri correggendo eventuali virgole nei decimali
         df["cost"] = pd.to_numeric(df["cost"].str.replace(",", "."), errors="coerce")
         df["fantamedia"] = pd.to_numeric(df["fantamedia"].str.replace(",", "."), errors="coerce")
         df["media_voto"] = pd.to_numeric(df["media_voto"].str.replace(",", "."), errors="coerce")
-        df["starter_probability"] = pd.to_numeric(df["starter_probability"].str.replace(",", "."), errors="coerce")
+        df["appearances"] = pd.to_numeric(df["appearances"].str.replace(",", "."), errors="coerce")
 
         # Riempie solo i valori NaN in cost con 0 per evitare problemi di visualizzazione
         df["cost"].fillna(0, inplace=True)
@@ -65,24 +65,24 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
             st.error(f"Errore: Nessun giocatore disponibile per il ruolo {role}")
             return None, None
 
-        # Considerazione della titolarità
+        # Considerazione delle presenze per determinare la titolarità
         for p in players:
-            if 'starter_probability' not in p or pd.isna(p['starter_probability']):
-                p['starter_probability'] = 50  # Default a 50 se mancante
+            if 'appearances' not in p or pd.isna(p['appearances']):
+                p['appearances'] = 0  # Default a 0 se mancante
         
         # Applicazione della strategia
         if strategy == "Top Player Oriented":
-            players = sorted(players, key=lambda x: (x['fantamedia'], x['media_voto'], x['starter_probability']), reverse=True)
+            players = sorted(players, key=lambda x: (x['fantamedia'], x['media_voto'], x['appearances']), reverse=True)
         elif strategy == "Squadra Diversificata":
             team_squadre = set([p['team'] for p in team])
             players = [p for p in players if p['team'] not in team_squadre]
         elif strategy == "Modificatore di Difesa":
             if role in ["Portiere", "Difensore"]:
-                players = sorted(players, key=lambda x: (x['media_voto'], x['fantamedia'], x['starter_probability']), reverse=True)
+                players = sorted(players, key=lambda x: (x['media_voto'], x['fantamedia'], x['appearances']), reverse=True)
             else:
-                players = sorted(players, key=lambda x: (x['fantamedia'], x['starter_probability']), reverse=True)
+                players = sorted(players, key=lambda x: (x['fantamedia'], x['appearances']), reverse=True)
         else:  # Equilibrata
-            players = sorted(players, key=lambda x: (x['fantamedia'], x['starter_probability']), reverse=True)
+            players = sorted(players, key=lambda x: (x['fantamedia'], x['appearances']), reverse=True)
         
         try:
             selected = random.sample(players[:20], count)  # Assicura varietà
@@ -123,7 +123,7 @@ if st.button("Genera Squadra"):
     else:
         st.success(f"Squadra generata con successo! Costo totale: {total_cost}")
         for player in team:
-            st.write(f"{player['role']}: {player['name']} ({player['team']}) - Cost: {player['cost']} - Fantamedia: {player['fantamedia']:.2f} - Media Voto: {player['media_voto']:.2f} - Titolarità: {player['starter_probability']}%")
+            st.write(f"{player['role']}: {player['name']} ({player['team']}) - Cost: {player['cost']} - Fantamedia: {player['fantamedia']:.2f} - Media Voto: {player['media_voto']:.2f} - Presenze: {player['appearances']}")
         
         csv_data = export_to_csv(team)
         st.download_button("Scarica CSV", csv_data, file_name="squadra_fantacalcio.csv", mime="text/csv")
