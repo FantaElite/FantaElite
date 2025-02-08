@@ -46,7 +46,7 @@ def load_database():
         st.error(f"Errore nel caricamento del database: {e}")
         return None
 
-def generate_team(database, budget=500):
+def generate_team(database, budget=500, strategy="Equilibrata"):
     ROLES = {
         "Portiere": 3,
         "Difensore": 8,
@@ -63,7 +63,22 @@ def generate_team(database, budget=500):
             st.error(f"Errore: Nessun giocatore disponibile per il ruolo {role}")
             return None, None
 
-        players = sorted(players, key=lambda x: x['fantamedia'], reverse=True)
+        # Applicazione della strategia
+        if strategy == "Top Player Oriented":
+            players = sorted(players, key=lambda x: (x['fantamedia'], x['media_voto']), reverse=True)
+        elif strategy == "Budget Balanced":
+            players = sorted(players, key=lambda x: (x['fantamedia'] / x['cost'] if x['cost'] > 0 else 0), reverse=True)
+        elif strategy == "Squadra Diversificata":
+            team_squadre = set([p['team'] for p in team])
+            players = [p for p in players if p['team'] not in team_squadre]
+        elif strategy == "Modificatore di Difesa":
+            if role in ["Portiere", "Difensore"]:
+                players = sorted(players, key=lambda x: (x['media_voto'], x['fantamedia']), reverse=True)
+            else:
+                players = sorted(players, key=lambda x: x['fantamedia'], reverse=True)
+        else:  # Equilibrata
+            players = sorted(players, key=lambda x: x['fantamedia'], reverse=True)
+        
         try:
             selected = random.sample(players[:20], count)  # Assicura varietà
         except ValueError as e:
@@ -75,7 +90,7 @@ def generate_team(database, budget=500):
     
     if total_cost > budget:
         st.warning(f"Sforato il budget ({total_cost} > {budget}), rigenerando...")
-        return generate_team(database, budget)  # Riprova se sfora il budget
+        return generate_team(database, budget, strategy)  # Riprova se sfora il budget
     
     return team, total_cost
 
@@ -92,8 +107,11 @@ if database is None:
 
 budget = st.number_input("Inserisci il budget", min_value=100, max_value=1000, value=500, step=10)
 
+# Menu a tendina per selezionare la strategia
+strategy = st.selectbox("Seleziona la strategia di generazione", ["Equilibrata", "Top Player Oriented", "Budget Balanced", "Squadra Diversificata", "Modificatore di Difesa"])
+
 if st.button("Genera Squadra"):
-    team, total_cost = generate_team(database, budget)
+    team, total_cost = generate_team(database, budget, strategy)
     
     if team is None:
         st.error("Errore nella generazione della squadra.")
