@@ -10,17 +10,18 @@ def load_database():
     try:
         df = pd.read_csv(url, encoding="utf-8", delimiter=';')
         
-        # Rimuove eventuali spazi prima e dopo i nomi delle colonne e caratteri speciali nascosti
-        df.columns = df.columns.str.strip().str.replace("\xa0", "").str.replace("\t", "")
+        # Rimuove eventuali spazi prima e dopo i nomi delle colonne
+        df.columns = df.columns.str.strip()
         
         # Mappa i nomi corretti senza modificare il testo originale
         expected_columns = [
             "Nome", "Squadra", "Ruolo", "Media Voto", "Fantamedia", "Quotazione", "Partite a Voto"
         ]
         
+        # Controllo colonne mancanti con debug
         missing_columns = [col for col in expected_columns if col not in df.columns]
         if missing_columns:
-            st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Controlla il file e riprova.")
+            st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Ecco le colonne trovate: {df.columns.tolist()}")
             return None
 
         # Converti le colonne numeriche correggendo eventuali virgole nei decimali
