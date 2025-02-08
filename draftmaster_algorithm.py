@@ -6,7 +6,7 @@ import random
 # Carica il database Excel automaticamente
 @st.cache
 def load_database():
-    url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio.csv"
+    url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio_v2.csv"
     try:
         df = pd.read_csv(url, encoding="utf-8", delimiter=';')
         
