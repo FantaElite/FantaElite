@@ -10,8 +10,8 @@ def load_database():
     try:
         df = pd.read_csv(url, encoding="utf-8", delimiter=';')
         
-        # Rimuove eventuali spazi prima e dopo i nomi delle colonne
-        df.columns = df.columns.str.strip()
+        # Rimuove eventuali spazi prima e dopo i nomi delle colonne e caratteri speciali nascosti
+        df.columns = df.columns.str.strip().str.replace("\xa0", "").str.replace("\t", "")
         
         # Mappa i nomi corretti senza modificare il testo originale
         expected_columns = [
