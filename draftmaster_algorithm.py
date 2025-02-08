@@ -33,11 +33,14 @@ def load_database():
             st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Ecco le colonne trovate: {df.columns.tolist()}")
             return None
 
+        # Assicura che tutte le colonne siano stringhe prima di operare su di esse
+        df = df.astype(str)
+        
         # Converti le colonne numeriche correggendo eventuali virgole nei decimali
-        df["Quotazione"] = pd.to_numeric(df["Quotazione"].str.replace(",", "."), errors="coerce")
-        df["Fantamedia"] = pd.to_numeric(df["Fantamedia"].str.replace(",", "."), errors="coerce")
-        df["Media_Voto"] = pd.to_numeric(df["Media_Voto"].str.replace(",", "."), errors="coerce")
-        df["Partite_Voto"] = pd.to_numeric(df["Partite_Voto"].str.replace(",", "."), errors="coerce")
+        df["Quotazione"] = pd.to_numeric(df["Quotazione"].str.replace(",", ".", regex=True), errors="coerce")
+        df["Fantamedia"] = pd.to_numeric(df["Fantamedia"].str.replace(",", ".", regex=True), errors="coerce")
+        df["Media_Voto"] = pd.to_numeric(df["Media_Voto"].str.replace(",", ".", regex=True), errors="coerce")
+        df["Partite_Voto"] = pd.to_numeric(df["Partite_Voto"].str.replace(",", ".", regex=True), errors="coerce")
 
         # Riempie solo i valori NaN in Quotazione con 0 per evitare problemi di visualizzazione
         df["Quotazione"].fillna(0, inplace=True)
