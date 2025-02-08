@@ -13,12 +13,21 @@ def load_database():
         # Rimuove eventuali spazi prima e dopo i nomi delle colonne
         df.columns = df.columns.str.strip()
         
-        # Mappa i nomi corretti senza modificare il testo originale
-        expected_columns = [
-            "Nome", "Squadra", "Ruolo", "Media Voto", "Fantamedia", "Quotazione", "Partite a Voto"
-        ]
+        # Mappa i nuovi nomi delle colonne corretti
+        column_mapping = {
+            "Nome": "Nome",
+            "Squadra": "Squadra",
+            "Ruolo": "Ruolo",
+            "Media_Voto": "Media_Voto",
+            "Fantamedia": "Fantamedia",
+            "Quotazione": "Quotazione",
+            "Partite_Voto": "Partite_Voto"
+        }
         
-        # Controllo colonne mancanti con debug
+        df.rename(columns=column_mapping, inplace=True)
+        
+        # Controllo colonne mancanti
+        expected_columns = list(column_mapping.values())
         missing_columns = [col for col in expected_columns if col not in df.columns]
         if missing_columns:
             st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Ecco le colonne trovate: {df.columns.tolist()}")
@@ -27,14 +36,14 @@ def load_database():
         # Converti le colonne numeriche correggendo eventuali virgole nei decimali
         df["Quotazione"] = pd.to_numeric(df["Quotazione"].str.replace(",", "."), errors="coerce")
         df["Fantamedia"] = pd.to_numeric(df["Fantamedia"].str.replace(",", "."), errors="coerce")
-        df["Media Voto"] = pd.to_numeric(df["Media Voto"].str.replace(",", "."), errors="coerce")
-        df["Partite a Voto"] = pd.to_numeric(df["Partite a Voto"].str.replace(",", "."), errors="coerce")
+        df["Media_Voto"] = pd.to_numeric(df["Media_Voto"].str.replace(",", "."), errors="coerce")
+        df["Partite_Voto"] = pd.to_numeric(df["Partite_Voto"].str.replace(",", "."), errors="coerce")
 
         # Riempie solo i valori NaN in Quotazione con 0 per evitare problemi di visualizzazione
         df["Quotazione"].fillna(0, inplace=True)
 
         # Se Fantamedia è presente ma Media Voto è NaN, assegna Media Voto = Fantamedia
-        df.loc[df["Media Voto"].isna() & df["Fantamedia"].notna(), "Media Voto"] = df["Fantamedia"]
+        df.loc[df["Media_Voto"].isna() & df["Fantamedia"].notna(), "Media_Voto"] = df["Fantamedia"]
 
         return df.to_dict(orient='records')
     except Exception as e:
@@ -60,22 +69,22 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
 
         # Considerazione delle presenze per determinare la titolarità
         for p in players:
-            if 'Partite a Voto' not in p or pd.isna(p['Partite a Voto']):
-                p['Partite a Voto'] = 0  # Default a 0 se mancante
+            if 'Partite_Voto' not in p or pd.isna(p['Partite_Voto']):
+                p['Partite_Voto'] = 0  # Default a 0 se mancante
         
         # Applicazione della strategia
         if strategy == "Top Player Oriented":
-            players = sorted(players, key=lambda x: (x['Fantamedia'], x['Media Voto'], x['Partite a Voto']), reverse=True)
+            players = sorted(players, key=lambda x: (x['Fantamedia'], x['Media_Voto'], x['Partite_Voto']), reverse=True)
         elif strategy == "Squadra Diversificata":
             team_squadre = set([p['Squadra'] for p in team])
             players = [p for p in players if p['Squadra'] not in team_squadre]
         elif strategy == "Modificatore di Difesa":
             if role in ["Portiere", "Difensore"]:
-                players = sorted(players, key=lambda x: (x['Media Voto'], x['Fantamedia'], x['Partite a Voto']), reverse=True)
+                players = sorted(players, key=lambda x: (x['Media_Voto'], x['Fantamedia'], x['Partite_Voto']), reverse=True)
             else:
-                players = sorted(players, key=lambda x: (x['Fantamedia'], x['Partite a Voto']), reverse=True)
+                players = sorted(players, key=lambda x: (x['Fantamedia'], x['Partite_Voto']), reverse=True)
         else:  # Equilibrata
-            players = sorted(players, key=lambda x: (x['Fantamedia'], x['Partite a Voto']), reverse=True)
+            players = sorted(players, key=lambda x: (x['Fantamedia'], x['Partite_Voto']), reverse=True)
         
         try:
             selected = random.sample(players[:20], count)  # Assicura varietà
@@ -116,7 +125,7 @@ if st.button("Genera Squadra"):
     else:
         st.success(f"Squadra generata con successo! Costo totale: {total_cost}")
         for player in team:
-            st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Cost: {player['Quotazione']} - Fantamedia: {player['Fantamedia']:.2f} - Media Voto: {player['Media Voto']:.2f} - Presenze: {player['Partite a Voto']}")
+            st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Cost: {player['Quotazione']} - Fantamedia: {player['Fantamedia']:.2f} - Media Voto: {player['Media_Voto']:.2f} - Presenze: {player['Partite_Voto']}")
         
         csv_data = export_to_csv(team)
         st.download_button("Scarica CSV", csv_data, file_name="squadra_fantacalcio.csv", mime="text/csv")
