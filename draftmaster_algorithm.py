@@ -47,6 +47,9 @@ def load_database():
 
         # Se Fantamedia è presente ma Media Voto è NaN, assegna Media Voto = Fantamedia
         df.loc[df["Media_Voto"].isna() & df["Fantamedia"].notna(), "Media_Voto"] = df["Fantamedia"]
+        
+        # Mostra i ruoli presenti per debug
+        st.write("Ruoli disponibili nel database:", df["Ruolo"].unique())
 
         return df.to_dict(orient='records')
     except Exception as e:
@@ -65,7 +68,7 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
     total_cost = 0
     
     for role, count in ROLES.items():
-        players = [p for p in database if p['Ruolo'] == role]
+        players = [p for p in database if p['Ruolo'].strip() == role]
         if not players:
             st.error(f"Errore: Nessun giocatore disponibile per il ruolo {role}")
             return None, None
@@ -90,7 +93,7 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
             players = sorted(players, key=lambda x: (x['Fantamedia'], x['Partite_Voto']), reverse=True)
         
         try:
-            selected = random.sample(players[:20], count)  # Assicura varietà
+            selected = random.sample(players[:50], count)  # Assicura varietà
         except ValueError as e:
             st.error(f"Errore nella selezione dei giocatori per {role}: {e}")
             return None, None
