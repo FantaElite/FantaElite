@@ -33,9 +33,6 @@ def load_database():
             st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Ecco le colonne trovate: {df.columns.tolist()}")
             return None
 
-        # Assicura che tutte le colonne siano stringhe prima di operare su di esse
-        df = df.astype(str)
-        
         # Converti le colonne numeriche correggendo eventuali virgole nei decimali
         df["Quotazione"] = pd.to_numeric(df["Quotazione"].str.replace(",", ".", regex=True), errors="coerce")
         df["Fantamedia"] = pd.to_numeric(df["Fantamedia"].str.replace(",", ".", regex=True), errors="coerce")
@@ -44,24 +41,12 @@ def load_database():
 
         # Riempie solo i valori NaN in Quotazione con 0 per evitare problemi di visualizzazione
         df["Quotazione"].fillna(0, inplace=True)
-
-        # Se Fantamedia è presente ma Media Voto è NaN, assegna Media Voto = Fantamedia
-        df.loc[df["Media_Voto"].isna() & df["Fantamedia"].notna(), "Media_Voto"] = df["Fantamedia"]
-        
         return df.to_dict(orient='records')
     except Exception as e:
         st.error(f"Errore nel caricamento del database: {e}")
         return None
 
 def generate_team(database, budget=500, strategy="Equilibrata"):
-    # Calcola il rapporto percentuale tra il budget dell'utente e il valore massimo del mercato
-    max_total_cost = sum(player['Quotazione'] for player in database if isinstance(player['Quotazione'], (int, float)))
-    budget_ratio = budget / max_total_cost if max_total_cost > 0 else 1
-
-    # Adatta le quotazioni dei giocatori in base al budget scelto
-    for player in database:
-        if isinstance(player['Quotazione'], (int, float)):
-            player['Quotazione'] = round(player['Quotazione'] * budget_ratio, 1)
     ROLES = {
         "Portiere": 3,
         "Difensore": 8,
@@ -71,33 +56,28 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
     
     team = []
     total_cost = 0
+    remaining_budget = budget
     
     for role, count in ROLES.items():
-        players = [p for p in database if p['Ruolo'].strip() == role]
+        players = [p for p in database if p['Ruolo'].strip() == role and isinstance(p['Quotazione'], (int, float))]
         if not players:
             st.error(f"Errore: Nessun giocatore disponibile per il ruolo {role}")
             return None, None
 
-        # Considerazione delle presenze per determinare la titolarità
-        for p in players:
-            if 'Partite_Voto' not in p or pd.isna(p['Partite_Voto']):
-                p['Partite_Voto'] = 0  # Default a 0 se mancante
-        
         # Ordinamento in base alla strategia scelta
         players = sorted(players, key=lambda x: (x['Fantamedia'], x['Media_Voto'], x['Partite_Voto']), reverse=True)
         
-        try:
-            selected = random.sample(players[:50], count)  # Assicura varietà
-        except ValueError as e:
-            st.error(f"Errore nella selezione dei giocatori per {role}: {e}")
-            return None, None
-
+        selected = []
+        for player in players:
+            if len(selected) < count and player['Quotazione'] <= remaining_budget:
+                selected.append(player)
+                remaining_budget -= player['Quotazione']
+        
+        if len(selected) < count:
+            st.warning(f"Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}")
+        
         team.extend(selected)
-        total_cost += sum(player['Quotazione'] for player in selected if isinstance(player['Quotazione'], (int, float)))
-    
-    if total_cost > budget:
-        st.warning(f"Sforato il budget ({total_cost} > {budget}), rigenerando...")
-        return generate_team(database, budget, strategy)
+        total_cost += sum(p['Quotazione'] for p in selected)
     
     return team, total_cost
 
