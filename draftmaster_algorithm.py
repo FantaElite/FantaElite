@@ -54,6 +54,14 @@ def load_database():
         return None
 
 def generate_team(database, budget=500, strategy="Equilibrata"):
+    # Calcola il rapporto percentuale tra il budget dell'utente e il valore massimo del mercato
+    max_total_cost = sum(player['Quotazione'] for player in database if isinstance(player['Quotazione'], (int, float)))
+    budget_ratio = budget / max_total_cost if max_total_cost > 0 else 1
+
+    # Adatta le quotazioni dei giocatori in base al budget scelto
+    for player in database:
+        if isinstance(player['Quotazione'], (int, float)):
+            player['Quotazione'] = round(player['Quotazione'] * budget_ratio, 1)
     ROLES = {
         "Portiere": 3,
         "Difensore": 8,
@@ -106,7 +114,7 @@ st.markdown("""---
 # Selezione tipo di pagamento
 payment_type = st.radio("Tipo di generazione", ["One Shot (1 strategia)", "Complete (4 strategie)"])
 
-budget = st.number_input("💰 Inserisci il budget", min_value=100, max_value=1000, value=500, step=10)
+budget = st.number_input("💰 Inserisci il budget", min_value=1, value=500, step=1)
 
 # Selezione strategia di generazione
 strategies = ["Equilibrata", "Top Player Oriented", "Squadra Diversificata", "Modificatore di Difesa"]
