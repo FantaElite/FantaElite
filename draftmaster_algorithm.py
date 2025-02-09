@@ -50,8 +50,9 @@ def load_database():
 
 def normalize_quotations(database, budget):
     max_quot = max(player['Quotazione'] for player in database if player['Quotazione'] > 0)
+    scale_factor = budget / max_quot
     for player in database:
-        player['Quotazione'] = round((player['Quotazione'] / max_quot) * budget, 2)
+        player['Quotazione'] = round(player['Quotazione'] * scale_factor, 2)
 
 
 def generate_team(database, budget=500, strategy="Equilibrata"):
@@ -79,7 +80,8 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
                 break
         
         if len(selected) < count:
-            st.warning(f"⚠️ Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}.")
+            st.warning(f"⚠️ Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}. Verifica che il budget sia sufficiente.")
+            return None, None
         
         team.extend(selected)
     
@@ -127,4 +129,4 @@ if st.button("🛠️ Genera Squadra"):
             csv_data = export_to_csv(team)
             st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
         else:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Verifica il budget e riprova.")
+            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo basso per formare una rosa completa.")
