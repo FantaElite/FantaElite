@@ -65,33 +65,24 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
     normalize_quotations(database, budget)
     team = []
     remaining_budget = budget
-    max_attempts = 50  # Evita loop infiniti
-
+    
     for role, count in ROLES.items():
         players = sorted([p for p in database if p['Ruolo'].strip() == role], key=lambda x: x['Fantamedia'], reverse=True)
         selected = []
-        attempts = 0
-
-        while len(selected) < count and attempts < max_attempts:
-            attempts += 1
-            if not players:
-                break
-
-            player = random.choice(players)
-            if player['Quotazione'] <= remaining_budget:
+        
+        for player in players:
+            if len(selected) < count and player['Quotazione'] <= remaining_budget:
                 selected.append(player)
                 remaining_budget -= player['Quotazione']
-                players.remove(player)
-            
-            # Se il budget rimanente è troppo basso, scegliamo un giocatore più economico
-            if remaining_budget < min((p['Quotazione'] for p in players if p['Quotazione'] > 0), default=budget):
+                
+            if len(selected) >= count:
                 break
-
+        
         if len(selected) < count:
             st.warning(f"⚠️ Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}.")
         
         team.extend(selected)
-
+    
     total_cost = sum(p['Quotazione'] for p in team)
     return team, total_cost if total_cost <= budget else None
 
