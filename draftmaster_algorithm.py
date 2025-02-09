@@ -65,7 +65,7 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
     normalize_quotations(database, budget)
     team = []
     remaining_budget = budget
-    max_attempts = 50  # Ridotto per evitare loop infiniti
+    max_attempts = 50  # Evita loop infiniti
 
     for role, count in ROLES.items():
         players = sorted([p for p in database if p['Ruolo'].strip() == role], key=lambda x: x['Fantamedia'], reverse=True)
@@ -83,8 +83,9 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
                 remaining_budget -= player['Quotazione']
                 players.remove(player)
             
+            # Se il budget rimanente è troppo basso, scegliamo un giocatore più economico
             if remaining_budget < min((p['Quotazione'] for p in players if p['Quotazione'] > 0), default=budget):
-                break  # Fermo il ciclo se il budget rimanente è troppo basso
+                break
 
         if len(selected) < count:
             st.warning(f"⚠️ Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}.")
@@ -135,4 +136,4 @@ if st.button("🛠️ Genera Squadra"):
             csv_data = export_to_csv(team)
             st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
         else:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}).")
+            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Verifica il budget e riprova.")
