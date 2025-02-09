@@ -9,10 +9,10 @@ def load_database():
     url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio_v2.csv"
     try:
         df = pd.read_csv(url, encoding="utf-8", delimiter=';')
-        
+
         # Rimuove eventuali spazi prima e dopo i nomi delle colonne
         df.columns = df.columns.str.strip()
-        
+
         # Mappa i nuovi nomi delle colonne corretti
         column_mapping = {
             "Nome": "Nome",
@@ -23,9 +23,9 @@ def load_database():
             "Quotazione": "Quotazione",
             "Partite_Voto": "Partite_Voto"
         }
-        
+
         df.rename(columns=column_mapping, inplace=True)
-        
+
         # Controllo colonne mancanti
         expected_columns = list(column_mapping.values())
         missing_columns = [col for col in expected_columns if col not in df.columns]
@@ -33,18 +33,15 @@ def load_database():
             st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Ecco le colonne trovate: {df.columns.tolist()}")
             return None
 
-        # Converti le colonne numeriche e riempi NaN con valori di default
-        numeric_columns = ["Quotazione", "Fantamedia", "Media_Voto", "Partite_Voto"]
-        for col in numeric_columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)  # Converti i NaN in 0
+        # Converti la colonna "Quotazione" in numerico, riempiendo eventuali NaN con la media
+        df["Quotazione"] = pd.to_numeric(df["Quotazione"], errors="coerce")
+        df["Quotazione"].fillna(df["Quotazione"].mean(), inplace=True)
 
-        # Assicura che le colonne testuali siano effettivamente stringhe
-        text_columns = ["Nome", "Squadra", "Ruolo"]
-        for col in text_columns:
-            df[col] = df[col].astype(str).str.strip().fillna("")
+        # Assicura che la colonna "Ruolo" sia trattata come stringa senza modifiche
+        df["Ruolo"] = df["Ruolo"].astype(str).str.strip()
 
         return df.to_dict(orient='records')
-    
+
     except Exception as e:
         st.error(f"Errore nel caricamento del database: {e}")
         return None
@@ -52,12 +49,14 @@ def load_database():
 
 def normalize_quotations(database, budget):
     """
-    Normalizza le quotazioni dei giocatori in base al budget, mantenendo le proporzioni.
+    Normalizza solo la colonna 'Quotazione' in base al budget, mantenendo le proporzioni.
     """
     max_quot = max(player['Quotazione'] for player in database if player['Quotazione'] > 0)
-    scale_factor = budget / max_quot if max_quot > 0 else 1
-    for player in database:
-        player['Quotazione'] = max(round(player['Quotazione'] * scale_factor, 2), 1)  # Assicura che nessun giocatore abbia quota 0
+    
+    if max_quot > 0:
+        scale_factor = budget / max_quot
+        for player in database:
+            player['Quotazione'] = max(round(player['Quotazione'] * scale_factor, 2), 1)  # Assicura che nessun giocatore abbia quota 0
 
 
 def generate_team(database, budget=500, strategy="Equilibrata"):
@@ -71,28 +70,30 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
         "Attaccante": 6
     }
 
+    # Normalizza solo la colonna 'Quotazione' senza toccare il resto
     normalize_quotations(database, budget)
+
     team = []
     remaining_budget = budget
-    
+
     for role, count in ROLES.items():
-        players = sorted([p for p in database if p['Ruolo'].strip() == role and p['Quotazione'] > 0], key=lambda x: x['Fantamedia'], reverse=True)
+        players = sorted([p for p in database if p['Ruolo'] == role and p['Quotazione'] > 0], key=lambda x: x['Fantamedia'], reverse=True)
         selected = []
-        
+
         for player in players:
             if len(selected) < count and player['Quotazione'] <= remaining_budget:
                 selected.append(player)
                 remaining_budget -= player['Quotazione']
-                
+
             if len(selected) >= count:
                 break
-        
+
         if len(selected) < count:
             st.warning(f"⚠️ Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}. Verifica che il budget sia sufficiente.")
             return None, None
-        
+
         team.extend(selected)
-    
+
     total_cost = sum(p['Quotazione'] for p in team)
     return team, total_cost if total_cost <= budget else None
 
@@ -100,6 +101,7 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
 def export_to_csv(team):
     df = pd.DataFrame(team)
     return df.to_csv(index=False, sep=';', decimal=',', encoding='utf-8').encode('utf-8')
+
 
 # Web App con Streamlit
 st.title("⚽ FantaElite - Generatore di Rose Fantacalcio ⚽")
