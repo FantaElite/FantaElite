@@ -42,14 +42,15 @@ def load_database():
         # Riempie solo i valori NaN in Quotazione con 0 per evitare problemi di visualizzazione
         df["Quotazione"].fillna(0, inplace=True)
         
-        # Riproporziona le quotazioni rispetto al budget
-        max_quot = df["Quotazione"].max()
-        df["Quotazione"] = (df["Quotazione"] / max_quot) * 100
-        
         return df.to_dict(orient='records')
     except Exception as e:
         st.error(f"Errore nel caricamento del database: {e}")
         return None
+
+def normalize_quotations(database, budget):
+    max_quot = max(player['Quotazione'] for player in database if player['Quotazione'] > 0)
+    for player in database:
+        player['Quotazione'] = (player['Quotazione'] / max_quot) * budget
 
 def generate_team(database, budget=500, strategy="Equilibrata"):
     ROLES = {
@@ -59,24 +60,14 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
         "Attaccante": 6
     }
     
-    # Riproporziona le quotazioni rispetto al budget
-    for player in database:
-        player['Quotazione'] = (player['Quotazione'] / 100) * budget
-    
+    normalize_quotations(database, budget)
     team = []
-    total_cost = 0
     remaining_budget = budget
     
     for role, count in ROLES.items():
-        players = [p for p in database if p['Ruolo'].strip() == role and isinstance(p['Quotazione'], (int, float))]
-        if not players:
-            st.error(f"Errore: Nessun giocatore disponibile per il ruolo {role}")
-            return None, None
-
-        # Ordinamento in base alla strategia scelta
-        players = sorted(players, key=lambda x: (x['Fantamedia'], x['Media_Voto'], x['Partite_Voto']), reverse=True)
-        
+        players = sorted([p for p in database if p['Ruolo'].strip() == role], key=lambda x: x['Fantamedia'], reverse=True)
         selected = []
+        
         for player in players:
             if len(selected) < count and player['Quotazione'] <= remaining_budget:
                 selected.append(player)
@@ -86,8 +77,8 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
             st.warning(f"Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}")
         
         team.extend(selected)
-        total_cost += sum(p['Quotazione'] for p in selected)
     
+    total_cost = sum(p['Quotazione'] for p in team)
     return team, total_cost
 
 def export_to_csv(team):
@@ -122,7 +113,7 @@ if st.button("🛠️ Genera Squadra"):
     for strategy in strategy_list:
         team, total_cost = generate_team(database, budget, strategy)
         if team:
-            st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost}")
+            st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost:.2f}")
             for player in team:
                 st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Cost: {player['Quotazione']:.2f} - Fantamedia: {player['Fantamedia']:.2f} - Media Voto: {player['Media_Voto']:.2f} - Presenze: {player['Partite_Voto']}")
             
