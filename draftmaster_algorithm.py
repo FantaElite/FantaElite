@@ -41,8 +41,11 @@ def load_database():
         
         # Riempie solo i valori NaN con la media delle quotazioni esistenti
         df["Quotazione"].fillna(df["Quotazione"].mean(), inplace=True)
-        
-        # 🚨 NON TOCCO LA COLONNA "Ruolo" 🚨
+
+        # Assicura che la colonna "Ruolo" sia sempre stringa e rimuove eventuali NaN
+        df["Ruolo"] = df["Ruolo"].astype(str).str.strip()
+        df = df[df["Ruolo"].notna()]  # Rimuove eventuali righe con NaN nella colonna "Ruolo"
+
         return df.to_dict(orient='records')
     
     except Exception as e:
@@ -51,17 +54,13 @@ def load_database():
 
 
 def normalize_quotations(database, budget):
-    """ Proporziona solo la colonna Quotazione in base al budget scelto. """
     max_quot = max(player['Quotazione'] for player in database if player['Quotazione'] > 0)
-    
-    if max_quot > 0:
-        scale_factor = budget / 500  # 500 è il valore di riferimento delle quotazioni originali
-        for player in database:
-            player['Quotazione'] = max(round(player['Quotazione'] * scale_factor, 1), 1)  # Assicura che nessuno scenda sotto 1 credito
+    scale_factor = budget / max_quot if max_quot > 0 else 1
+    for player in database:
+        player['Quotazione'] = max(round(player['Quotazione'] * scale_factor, 2), 1)  # Assicura che nessun giocatore abbia quota 0
 
 
 def generate_team(database, budget=500, strategy="Equilibrata"):
-    """ Genera una squadra in base al budget e alla strategia scelta. """
     ROLES = {
         "Portiere": 3,
         "Difensore": 8,
@@ -74,8 +73,17 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
     remaining_budget = budget
     
     for role, count in ROLES.items():
-        # 🚨 Non modifico "Ruolo", evito problemi con `.str accessor`
-        players = sorted([p for p in database if p['Ruolo'] == role and p['Quotazione'] > 0], key=lambda x: x['Fantamedia'], reverse=True)
+        # 🔹 Stampa i ruoli per controllare che siano corretti
+        unique_roles = set(p['Ruolo'] for p in database)
+        if role not in unique_roles:
+            st.error(f"⚠️ Errore: il ruolo '{role}' non è stato trovato nel database! Ruoli disponibili: {unique_roles}")
+            return None, None
+
+        players = sorted(
+            [p for p in database if p['Ruolo'] == role and p['Quotazione'] > 0],
+            key=lambda x: x['Fantamedia'], 
+            reverse=True
+        )
         
         selected = []
         for player in players:
@@ -86,9 +94,8 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
             if len(selected) >= count:
                 break
         
-        # Controlla che sia stato selezionato il numero corretto di giocatori per ruolo
         if len(selected) < count:
-            st.warning(f"⚠️ Attenzione: Budget insufficiente per completare il ruolo {role}.")
+            st.warning(f"⚠️ Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}. Verifica che il budget sia sufficiente.")
             return None, None
         
         team.extend(selected)
@@ -98,14 +105,14 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
 
 
 def export_to_csv(team):
-    """ Esporta la squadra generata in formato CSV. """
     df = pd.DataFrame(team)
     return df.to_csv(index=False, sep=';', decimal=',', encoding='utf-8').encode('utf-8')
 
-
 # Web App con Streamlit
 st.title("⚽ FantaElite - Generatore di Rose Fantacalcio ⚽")
-st.markdown("### 📌 Scegli il tuo metodo di generazione")
+st.markdown("""---
+### Scegli il tuo metodo di acquisto
+""")
 
 # Selezione tipo di pagamento
 payment_type = st.radio("Tipo di generazione", ["One Shot (1 strategia)", "Complete (4 strategie)"])
@@ -121,7 +128,6 @@ if payment_type == "One Shot (1 strategia)":
 else:
     strategy_list = strategies
 
-# Caricamento Database
 database = load_database()
 if database is None:
     st.stop()
@@ -131,12 +137,11 @@ if st.button("🛠️ Genera Squadra"):
         team, total_cost = generate_team(database, budget, strategy)
         if team:
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost:.2f}")
-            st.write("### 📜 Squadra selezionata:")
+            st.write("### Squadra generata:")
             for player in team:
-                st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Cost: {player['Quotazione']:.1f} - Fantamedia: {player['Fantamedia']:.2f}")
-
+                st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Cost: {player['Quotazione']:.2f} - Fantamedia: {player['Fantamedia']:.2f} - Media Voto: {player['Media_Voto']:.2f} - Presenze: {player['Partite_Voto']}")
+            
             csv_data = export_to_csv(team)
             st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
         else:
-            st.error(f"❌ Errore: Budget troppo basso per formare una rosa completa con la strategia '{strategy}'.")
-
+            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo basso per formare una rosa completa.")
