@@ -33,14 +33,21 @@ def load_database():
             st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Ecco le colonne trovate: {df.columns.tolist()}")
             return None
 
-        # Converti le colonne numeriche correggendo eventuali virgole nei decimali
-        for col in ["Quotazione", "Fantamedia", "Media_Voto", "Partite_Voto"]:
-            df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", ".", regex=True), errors="coerce")
+        # Converti le colonne numeriche correggendo eventuali errori
+        numeric_columns = ["Quotazione", "Fantamedia", "Media_Voto", "Partite_Voto"]
+        
+        for col in numeric_columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")  # Converte i valori non numerici in NaN
         
         # Riempie solo i valori NaN con la media delle quotazioni esistenti
         df["Quotazione"].fillna(df["Quotazione"].mean(), inplace=True)
         
+        # Assicura che la colonna "Ruolo" sia trattata come stringa
+        if df["Ruolo"].dtype != "object":
+            df["Ruolo"] = df["Ruolo"].astype(str).str.strip()
+
         return df.to_dict(orient='records')
+    
     except Exception as e:
         st.error(f"Errore nel caricamento del database: {e}")
         return None
