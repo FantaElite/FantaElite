@@ -30,15 +30,15 @@ def load_database():
         expected_columns = list(column_mapping.values())
         missing_columns = [col for col in expected_columns if col not in df.columns]
         if missing_columns:
-            st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Ecco le colonne trovate: {df.columns.tolist()}")
+            st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV.")
             return None
 
         # Converti la colonna "Quotazione" in numerico, riempiendo eventuali NaN con la media
         df["Quotazione"] = pd.to_numeric(df["Quotazione"], errors="coerce")
         df["Quotazione"].fillna(df["Quotazione"].mean(), inplace=True)
 
-        # Assicura che la colonna "Ruolo" sia trattata come stringa senza modifiche
-        df["Ruolo"] = df["Ruolo"].astype(str).str.strip()
+        # Converti "Ruolo" in stringa e sostituisci eventuali NaN con "Sconosciuto"
+        df["Ruolo"] = df["Ruolo"].astype(str).str.strip().fillna("Sconosciuto")
 
         return df.to_dict(orient='records')
 
