@@ -24,11 +24,11 @@ def load_database():
         }
         df.rename(columns=column_mapping, inplace=True)
 
-        # Verifica presenza colonne
+        # Controllo colonne mancanti
         expected_columns = list(column_mapping.values())
         missing_columns = [col for col in expected_columns if col not in df.columns]
         if missing_columns:
-            st.error(f"Errore: Mancano colonne {missing_columns} nel file CSV.")
+            st.error(f"Errore: Mancano colonne {missing_columns} nel file CSV. Trovate: {df.columns.tolist()}")
             return None
 
         # Conversione delle colonne numeriche
@@ -36,10 +36,10 @@ def load_database():
         for col in numeric_columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
-        # Riempimento NaN con valori sensati
+        # Riempie solo i valori NaN con la media delle quotazioni esistenti
         df["Quotazione"].fillna(df["Quotazione"].mean(), inplace=True)
 
-        # Assicura che "Ruolo" sia una stringa valida
+        # Assicura che la colonna "Ruolo" sia trattata come stringa e senza NaN
         df["Ruolo"] = df["Ruolo"].astype(str).str.strip().fillna("Sconosciuto")
 
         return df.to_dict(orient='records')
@@ -49,13 +49,13 @@ def load_database():
         return None
 
 
-def adjust_quotations(database, budget):
+def normalize_quotations(database, budget):
     """ Riproporziona le quotazioni in base al budget scelto. """
-    max_quot = max(player["Quotazione"] for player in database if player["Quotazione"] > 0)
-    scale_factor = budget / max_quot if max_quot > 0 else 1
-
-    for player in database:
-        player["Quotazione"] = max(round(player["Quotazione"] * scale_factor, 1), 1)
+    max_quot = max(player['Quotazione'] for player in database if player['Quotazione'] > 0)
+    if max_quot > 0:
+        scale_factor = budget / max_quot
+        for player in database:
+            player['Quotazione'] = max(round(player['Quotazione'] * scale_factor, 2), 1)  # Minimo 1 credito
 
 
 def generate_team(database, budget=500, strategy="Equilibrata"):
@@ -67,17 +67,15 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
         "Attaccante": 6
     }
 
-    # Adatta le quotazioni in base al budget
-    adjust_quotations(database, budget)
-
+    normalize_quotations(database, budget)
     team = []
     remaining_budget = budget
 
     for role, count in ROLES.items():
-        # Filtra solo i giocatori con ruolo valido e quotazione > 0
-        players = [p for p in database if p["Ruolo"] == role and p["Quotazione"] > 0]
+        # Filtra i giocatori per ruolo e con quotazione valida
+        players = [p for p in database if p['Ruolo'] == role and p['Quotazione'] > 0]
 
-        # Selezione in base alla strategia scelta
+        # Ordinamento per strategia
         if strategy == "Equilibrata":
             players = sorted(players, key=lambda x: x["Fantamedia"], reverse=True)
         elif strategy == "Top Player Oriented":
@@ -101,6 +99,7 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
 
         # Se non riusciamo a completare il ruolo, restituiamo errore
         if len(selected) < count:
+            st.warning(f"⚠️ Budget insufficiente per completare il ruolo {role}.")
             return None, None
 
         team.extend(selected)
