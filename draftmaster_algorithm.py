@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import os
 import random
 
 # Carica il database Excel automaticamente
@@ -10,10 +9,10 @@ def load_database():
     try:
         df = pd.read_csv(url, encoding="utf-8", delimiter=';')
 
-        # Rimuove eventuali spazi prima e dopo i nomi delle colonne
+        # Rimuove eventuali spazi nei nomi delle colonne
         df.columns = df.columns.str.strip()
 
-        # Mappa i nuovi nomi delle colonne corretti
+        # Rinomina le colonne per essere sicuri che siano standardizzate
         column_mapping = {
             "Nome": "Nome",
             "Squadra": "Squadra",
@@ -26,18 +25,22 @@ def load_database():
 
         df.rename(columns=column_mapping, inplace=True)
 
-        # Controllo colonne mancanti
+        # Verifica che tutte le colonne siano presenti
         expected_columns = list(column_mapping.values())
         missing_columns = [col for col in expected_columns if col not in df.columns]
         if missing_columns:
             st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV.")
             return None
 
-        # Converti la colonna "Quotazione" in numerico, riempiendo eventuali NaN con la media
-        df["Quotazione"] = pd.to_numeric(df["Quotazione"], errors="coerce")
+        # Conversione delle colonne numeriche con gestione degli errori
+        numeric_columns = ["Quotazione", "Fantamedia", "Media_Voto", "Partite_Voto"]
+        for col in numeric_columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")  # Converte eventuali valori errati in NaN
+
+        # Riempiamo eventuali NaN con valori di default
         df["Quotazione"].fillna(df["Quotazione"].mean(), inplace=True)
 
-        # Converti "Ruolo" in stringa e sostituisci eventuali NaN con "Sconosciuto"
+        # Assicura che "Ruolo" sia trattato come stringa e non contenga NaN
         df["Ruolo"] = df["Ruolo"].astype(str).str.strip().fillna("Sconosciuto")
 
         return df.to_dict(orient='records')
@@ -48,21 +51,15 @@ def load_database():
 
 
 def normalize_quotations(database, budget):
-    """
-    Normalizza solo la colonna 'Quotazione' in base al budget, mantenendo le proporzioni.
-    """
+    """ Normalizza solo la colonna 'Quotazione' in base al budget. """
     max_quot = max(player['Quotazione'] for player in database if player['Quotazione'] > 0)
-    
-    if max_quot > 0:
-        scale_factor = budget / max_quot
-        for player in database:
-            player['Quotazione'] = max(round(player['Quotazione'] * scale_factor, 2), 1)  # Assicura che nessun giocatore abbia quota 0
+    scale_factor = budget / max_quot if max_quot > 0 else 1
+    for player in database:
+        player['Quotazione'] = max(round(player['Quotazione'] * scale_factor, 2), 1)  # Assicura che nessuno abbia quota 0
 
 
 def generate_team(database, budget=500, strategy="Equilibrata"):
-    """
-    Genera una rosa equilibrata rispettando il budget e la strategia scelta.
-    """
+    """ Genera una squadra in base alla strategia scelta e al budget. """
     ROLES = {
         "Portiere": 3,
         "Difensore": 8,
@@ -70,14 +67,26 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
         "Attaccante": 6
     }
 
-    # Normalizza solo la colonna 'Quotazione' senza toccare il resto
     normalize_quotations(database, budget)
-
     team = []
     remaining_budget = budget
 
     for role, count in ROLES.items():
-        players = sorted([p for p in database if p['Ruolo'] == role and p['Quotazione'] > 0], key=lambda x: x['Fantamedia'], reverse=True)
+        players = [p for p in database if p['Ruolo'] == role and p['Quotazione'] > 0]
+
+        # Applica la strategia scelta
+        if strategy == "Equilibrata":
+            players = sorted(players, key=lambda x: x['Fantamedia'], reverse=True)
+        elif strategy == "Top Player Oriented":
+            players = sorted(players, key=lambda x: (x['Quotazione'], x['Fantamedia']), reverse=True)
+        elif strategy == "Squadra Diversificata":
+            random.shuffle(players)
+        elif strategy == "Modificatore di Difesa":
+            if role == "Difensore":
+                players = sorted(players, key=lambda x: x['Media_Voto'], reverse=True)
+            else:
+                players = sorted(players, key=lambda x: x['Fantamedia'], reverse=True)
+
         selected = []
 
         for player in players:
@@ -89,7 +98,7 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
                 break
 
         if len(selected) < count:
-            st.warning(f"⚠️ Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}. Verifica che il budget sia sufficiente.")
+            st.warning(f"⚠️ Non è stato possibile selezionare abbastanza giocatori per il ruolo {role}. Verifica il budget.")
             return None, None
 
         team.extend(selected)
@@ -99,11 +108,12 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
 
 
 def export_to_csv(team):
+    """ Esporta la squadra in un file CSV scaricabile. """
     df = pd.DataFrame(team)
     return df.to_csv(index=False, sep=';', decimal=',', encoding='utf-8').encode('utf-8')
 
 
-# Web App con Streamlit
+# Interfaccia Web con Streamlit
 st.title("⚽ FantaElite - Generatore di Rose Fantacalcio ⚽")
 st.markdown("""---
 ### Scegli il tuo metodo di acquisto
@@ -135,7 +145,7 @@ if st.button("🛠️ Genera Squadra"):
             st.write("### Squadra generata:")
             for player in team:
                 st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Cost: {player['Quotazione']:.2f} - Fantamedia: {player['Fantamedia']:.2f} - Media Voto: {player['Media_Voto']:.2f} - Presenze: {player['Partite_Voto']}")
-            
+
             csv_data = export_to_csv(team)
             st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
         else:
