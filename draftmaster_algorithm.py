@@ -41,6 +41,11 @@ def load_database():
 
         # Riempie solo i valori NaN in Quotazione con 0 per evitare problemi di visualizzazione
         df["Quotazione"].fillna(0, inplace=True)
+        
+        # Riproporziona le quotazioni rispetto al budget
+        max_quot = df["Quotazione"].max()
+        df["Quotazione"] = (df["Quotazione"] / max_quot) * 100
+        
         return df.to_dict(orient='records')
     except Exception as e:
         st.error(f"Errore nel caricamento del database: {e}")
@@ -53,6 +58,10 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
         "Centrocampista": 8,
         "Attaccante": 6
     }
+    
+    # Riproporziona le quotazioni rispetto al budget
+    for player in database:
+        player['Quotazione'] = (player['Quotazione'] / 100) * budget
     
     team = []
     total_cost = 0
@@ -115,7 +124,7 @@ if st.button("🛠️ Genera Squadra"):
         if team:
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost}")
             for player in team:
-                st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Cost: {player['Quotazione']} - Fantamedia: {player['Fantamedia']:.2f} - Media Voto: {player['Media_Voto']:.2f} - Presenze: {player['Partite_Voto']}")
+                st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Cost: {player['Quotazione']:.2f} - Fantamedia: {player['Fantamedia']:.2f} - Media Voto: {player['Media_Voto']:.2f} - Presenze: {player['Partite_Voto']}")
             
             csv_data = export_to_csv(team)
             st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
