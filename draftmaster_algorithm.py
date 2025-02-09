@@ -47,10 +47,12 @@ def load_database():
         st.error(f"Errore nel caricamento del database: {e}")
         return None
 
+
 def normalize_quotations(database, budget):
     max_quot = max(player['Quotazione'] for player in database if player['Quotazione'] > 0)
     for player in database:
         player['Quotazione'] = round((player['Quotazione'] / max_quot) * budget, 2)
+
 
 def generate_team(database, budget=500, strategy="Equilibrata"):
     ROLES = {
@@ -63,7 +65,7 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
     normalize_quotations(database, budget)
     team = []
     remaining_budget = budget
-    max_attempts = 100
+    max_attempts = 50  # Ridotto per evitare loop infiniti
 
     for role, count in ROLES.items():
         players = sorted([p for p in database if p['Ruolo'].strip() == role], key=lambda x: x['Fantamedia'], reverse=True)
@@ -81,8 +83,8 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
                 remaining_budget -= player['Quotazione']
                 players.remove(player)
             
-            if remaining_budget < min(p['Quotazione'] for p in players if p['Quotazione'] > 0):
-                players = [p for p in players if p['Quotazione'] <= remaining_budget]
+            if remaining_budget < min((p['Quotazione'] for p in players if p['Quotazione'] > 0), default=budget):
+                break  # Fermo il ciclo se il budget rimanente è troppo basso
 
         if len(selected) < count:
             st.warning(f"⚠️ Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}.")
@@ -91,6 +93,7 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
 
     total_cost = sum(p['Quotazione'] for p in team)
     return team, total_cost if total_cost <= budget else None
+
 
 def export_to_csv(team):
     df = pd.DataFrame(team)
@@ -125,6 +128,7 @@ if st.button("🛠️ Genera Squadra"):
         team, total_cost = generate_team(database, budget, strategy)
         if team:
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost:.2f}")
+            st.write("### Squadra generata:")
             for player in team:
                 st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Cost: {player['Quotazione']:.2f} - Fantamedia: {player['Fantamedia']:.2f} - Media Voto: {player['Media_Voto']:.2f} - Presenze: {player['Partite_Voto']}")
             
