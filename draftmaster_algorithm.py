@@ -50,7 +50,7 @@ def load_database():
 def normalize_quotations(database, budget):
     max_quot = max(player['Quotazione'] for player in database if player['Quotazione'] > 0)
     for player in database:
-        player['Quotazione'] = (player['Quotazione'] / max_quot) * budget
+        player['Quotazione'] = round((player['Quotazione'] / max_quot) * budget, 2)
 
 def generate_team(database, budget=500, strategy="Equilibrata"):
     ROLES = {
@@ -59,27 +59,38 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
         "Centrocampista": 8,
         "Attaccante": 6
     }
-    
+
     normalize_quotations(database, budget)
     team = []
     remaining_budget = budget
-    
+    max_attempts = 100
+
     for role, count in ROLES.items():
         players = sorted([p for p in database if p['Ruolo'].strip() == role], key=lambda x: x['Fantamedia'], reverse=True)
         selected = []
-        
-        for player in players:
-            if len(selected) < count and player['Quotazione'] <= remaining_budget:
+        attempts = 0
+
+        while len(selected) < count and attempts < max_attempts:
+            attempts += 1
+            if not players:
+                break
+
+            player = random.choice(players)
+            if player['Quotazione'] <= remaining_budget:
                 selected.append(player)
                 remaining_budget -= player['Quotazione']
-        
+                players.remove(player)
+            
+            if remaining_budget < min(p['Quotazione'] for p in players if p['Quotazione'] > 0):
+                players = [p for p in players if p['Quotazione'] <= remaining_budget]
+
         if len(selected) < count:
-            st.warning(f"Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}")
+            st.warning(f"⚠️ Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}.")
         
         team.extend(selected)
-    
+
     total_cost = sum(p['Quotazione'] for p in team)
-    return team, total_cost
+    return team, total_cost if total_cost <= budget else None
 
 def export_to_csv(team):
     df = pd.DataFrame(team)
@@ -103,7 +114,7 @@ if payment_type == "One Shot (1 strategia)":
     strategy = st.selectbox("🎯 Seleziona la strategia di generazione", strategies)
     strategy_list = [strategy]
 else:
-    strategy_list = strategies  # Se è "Complete", genera tutte le strategie
+    strategy_list = strategies
 
 database = load_database()
 if database is None:
