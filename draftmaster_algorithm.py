@@ -22,26 +22,40 @@ def load_database():
             "Quotazione": "Quotazione",
             "Partite_Voto": "Partite_Voto"
         }
-
         df.rename(columns=column_mapping, inplace=True)
 
-        # Forza le colonne testuali a stringa, evitando errori di tipo
-        for col in ["Nome", "Squadra", "Ruolo"]:
+        # Controllo che tutte le colonne attese siano presenti
+        expected_columns = list(column_mapping.values())
+        missing_columns = [col for col in expected_columns if col not in df.columns]
+        if missing_columns:
+            st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Colonne trovate: {df.columns.tolist()}")
+            return None
+
+        # Convertire le colonne testuali in stringhe per evitare problemi di tipo
+        text_columns = ["Nome", "Squadra", "Ruolo"]
+        for col in text_columns:
             df[col] = df[col].astype(str).str.strip()
 
-        # Converti le colonne numeriche gestendo i NaN
+        # Convertire le colonne numeriche e gestire i NaN
         numeric_columns = ["Quotazione", "Fantamedia", "Media_Voto", "Partite_Voto"]
         for col in numeric_columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+            df[col] = pd.to_numeric(df[col], errors="coerce")  # Convertire i non numerici in NaN
+            df[col].fillna(0, inplace=True)  # Sostituire NaN con 0
+
+        # Debug: Mostra i primi valori per verificare la correttezza del caricamento
+        st.write("✅ Database caricato con successo! Esempio di dati:", df.head())
 
         return df.to_dict(orient='records')
 
     except Exception as e:
-        st.error(f"Errore nel caricamento del database: {e}")
+        st.error(f"❌ Errore nel caricamento del database: {e}")
         return None
 
 
 def normalize_quotations(database, budget):
+    """
+    Normalizza le quotazioni in base al budget, mantenendo le proporzioni.
+    """
     max_quot = max(player['Quotazione'] for player in database if player['Quotazione'] > 0)
     scale_factor = budget / max_quot if max_quot > 0 else 1
     for player in database:
@@ -49,6 +63,9 @@ def normalize_quotations(database, budget):
 
 
 def generate_team(database, budget=500, strategy="Equilibrata"):
+    """
+    Genera una rosa equilibrata rispettando il budget e la strategia scelta.
+    """
     ROLES = {
         "Portiere": 3,
         "Difensore": 8,
@@ -62,8 +79,9 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
 
     for role, count in ROLES.items():
         players = sorted(
-            [p for p in database if p['Ruolo'] == role and p['Quotazione'] > 0],
-            key=lambda x: x['Fantamedia'], reverse=True
+            [p for p in database if p['Ruolo'].strip() == role and p['Quotazione'] > 0],
+            key=lambda x: x['Fantamedia'],
+            reverse=True
         )
         selected = []
 
@@ -86,6 +104,9 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
 
 
 def export_to_csv(team):
+    """
+    Esporta la rosa generata in formato CSV.
+    """
     df = pd.DataFrame(team)
     return df.to_csv(index=False, sep=';', decimal=',', encoding='utf-8').encode('utf-8')
 
@@ -119,9 +140,9 @@ if st.button("🛠️ Genera Squadra"):
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost:.2f}")
             st.write("### Squadra generata:")
             for player in team:
-                st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Cost: {player['Quotazione']:.2f} - Fantamedia: {player['Fantamedia']:.2f}")
+                st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Costo: {player['Quotazione']:.2f} - Fantamedia: {player['Fantamedia']:.2f}")
 
             csv_data = export_to_csv(team)
             st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
         else:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo basso.")
+            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Budget insufficiente.")
