@@ -4,7 +4,7 @@ import os
 import random
 
 # Carica il database Excel automaticamente
-@st.cache
+@st.cache_data
 def load_database():
     url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio_v2.csv"
     try:
@@ -42,10 +42,9 @@ def load_database():
         # Riempie solo i valori NaN con la media delle quotazioni esistenti
         df["Quotazione"].fillna(df["Quotazione"].mean(), inplace=True)
         
-        # Assicura che la colonna "Ruolo" sia trattata come stringa
-        if df["Ruolo"].dtype != "object":
-            df["Ruolo"] = df["Ruolo"].astype(str).str.strip()
-
+        # Assicura che la colonna "Ruolo" sia trattata come stringa senza NaN
+        df["Ruolo"] = df["Ruolo"].astype(str).str.strip().fillna("Sconosciuto")
+        
         return df.to_dict(orient='records')
     
     except Exception as e:
