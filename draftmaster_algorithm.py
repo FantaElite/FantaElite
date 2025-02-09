@@ -33,14 +33,12 @@ def load_database():
             st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Ecco le colonne trovate: {df.columns.tolist()}")
             return None
 
-        # Conversione sicura in numerico (evita errore sulle stringhe)
+        # Converti le colonne numeriche correggendo eventuali virgole nei decimali
         for col in ["Quotazione", "Fantamedia", "Media_Voto", "Partite_Voto"]:
-            if df[col].dtype == "object":  # Controlliamo se è una stringa prima di usare .str
-                df[col] = df[col].astype(str).str.replace(",", ".", regex=True)  # Sostituisce le virgole con punti
-            df[col] = pd.to_numeric(df[col], errors="coerce")  # Converte in numero, riempiendo gli errori con NaN
+            df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", ".", regex=True), errors="coerce")
         
-        # Riempie solo i valori NaN in Quotazione con 1 per evitare problemi di divisione per zero
-        df["Quotazione"].fillna(1, inplace=True)
+        # Riempie solo i valori NaN con la media delle quotazioni esistenti
+        df["Quotazione"].fillna(df["Quotazione"].mean(), inplace=True)
         
         return df.to_dict(orient='records')
     except Exception as e:
@@ -50,10 +48,9 @@ def load_database():
 
 def normalize_quotations(database, budget):
     max_quot = max(player['Quotazione'] for player in database if player['Quotazione'] > 0)
-    if max_quot > 0:
-        scale_factor = budget / max_quot
-        for player in database:
-            player['Quotazione'] = round(player['Quotazione'] * scale_factor, 2)
+    scale_factor = budget / max_quot if max_quot > 0 else 1
+    for player in database:
+        player['Quotazione'] = max(round(player['Quotazione'] * scale_factor, 2), 1)  # Assicura che nessun giocatore abbia quota 0
 
 
 def generate_team(database, budget=500, strategy="Equilibrata"):
@@ -69,7 +66,7 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
     remaining_budget = budget
     
     for role, count in ROLES.items():
-        players = sorted([p for p in database if p['Ruolo'].strip() == role], key=lambda x: x['Fantamedia'], reverse=True)
+        players = sorted([p for p in database if p['Ruolo'].strip() == role and p['Quotazione'] > 0], key=lambda x: x['Fantamedia'], reverse=True)
         selected = []
         
         for player in players:
