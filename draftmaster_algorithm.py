@@ -41,10 +41,10 @@ def load_database():
         
         # Riempie solo i valori NaN con la media delle quotazioni esistenti
         df["Quotazione"].fillna(df["Quotazione"].mean(), inplace=True)
-
-        # Assicura che la colonna "Ruolo" sia sempre stringa e rimuove eventuali NaN
-        df["Ruolo"] = df["Ruolo"].astype(str).str.strip()
-        df = df[df["Ruolo"].notna()]  # Rimuove eventuali righe con NaN nella colonna "Ruolo"
+        
+        # Assicura che la colonna "Ruolo" sia trattata come stringa
+        if df["Ruolo"].dtype != "object":
+            df["Ruolo"] = df["Ruolo"].astype(str).str.strip()
 
         return df.to_dict(orient='records')
     
@@ -73,19 +73,9 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
     remaining_budget = budget
     
     for role, count in ROLES.items():
-        # 🔹 Stampa i ruoli per controllare che siano corretti
-        unique_roles = set(p['Ruolo'] for p in database)
-        if role not in unique_roles:
-            st.error(f"⚠️ Errore: il ruolo '{role}' non è stato trovato nel database! Ruoli disponibili: {unique_roles}")
-            return None, None
-
-        players = sorted(
-            [p for p in database if p['Ruolo'] == role and p['Quotazione'] > 0],
-            key=lambda x: x['Fantamedia'], 
-            reverse=True
-        )
-        
+        players = sorted([p for p in database if p['Ruolo'].strip() == role and p['Quotazione'] > 0], key=lambda x: x['Fantamedia'], reverse=True)
         selected = []
+        
         for player in players:
             if len(selected) < count and player['Quotazione'] <= remaining_budget:
                 selected.append(player)
