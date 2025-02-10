@@ -87,8 +87,10 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
             if not players:
                 break  # Se non ci sono abbastanza giocatori, si interrompe
             
+            # Prova a selezionare giocatori, espandendo la selezione se non ci sono abbastanza candidati
+            max_players = max(int(len(players) * 0.8), count)  # Usa fino all'80% della lista ordinata
             try:
-                selected = random.sample(players[:int(len(players) * 0.6)], min(count, len(players[:int(len(players) * 0.6)])))
+                selected = random.sample(players[:max_players], min(count, len(players[:max_players])))
             except:
                 break  # Se non trova abbastanza giocatori, esce
             
