@@ -131,7 +131,7 @@ st.markdown("""---
 # Selezione tipo di pagamento
 payment_type = st.radio("Tipo di generazione", ["One Shot (1 strategia)", "Complete (3 strategie)"])
 
-budget = st.number_input("💰 Inserisci il budget", min_value=100, value=500, step=10)
+budget = st.selectbox("💰 Seleziona il budget", list(range(200, 2001, 50)))
 
 # Selezione strategia di generazione
 strategies = ["Equilibrata", "Top Player Oriented", "Modificatore di Difesa"]
