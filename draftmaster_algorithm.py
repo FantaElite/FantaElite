@@ -63,34 +63,35 @@ def calculate_player_score(player):
             player['Media_Voto'] * media_voto_weight + 
             player['Partite_Voto'] * partite_voto_weight)
 
-def generate_team(database, budget=500, strategy="Equilibrata"):
-    ROLES = ["Attaccante", "Centrocampista", "Difensore", "Portiere"]  # Ordine di priorità
-
+def generate_random_team(database, budget=500):
+    ROLES = ["Attaccante", "Centrocampista", "Difensore", "Portiere"]
     normalize_quotations(database, budget)
     team = []
     remaining_budget = budget
 
     for role in ROLES:
         count = 8 if role in ["Centrocampista", "Difensore"] else 6 if role == "Attaccante" else 3
-        players = sorted([p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0], 
-                       key=calculate_player_score, reverse=True)
+        role_players = [p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0]
         selected = []
 
-        for _ in range(count):
-            eligible_players = [p for p in players if p['Quotazione'] <= remaining_budget]
-            if not eligible_players:
-                break
+        # Genera combinazioni casuali di giocatori per il ruolo corrente
+        for _ in range(100):  # Prova 100 combinazioni casuali
+            random.shuffle(role_players)  # Mescola l'ordine dei giocatori
+            current_selection = []
+            current_budget = remaining_budget
 
-            scored_players = sorted(eligible_players, key=lambda x: (calculate_player_score(x), random.random()), reverse=True)
-            if scored_players:
-                selected_player = scored_players[0]
-                selected.append(selected_player)
-                remaining_budget -= selected_player['Quotazione']
-                players.remove(selected_player)
+            for player in role_players:
+                if len(current_selection) < count and player['Quotazione'] <= current_budget:
+                    current_selection.append(player)
+                    current_budget -= player['Quotazione']
+
+            if len(current_selection) == count:  # Trovata una combinazione valida
+                selected = current_selection
+                remaining_budget = current_budget
+                break  # Esce dal ciclo di combinazioni casuali
 
         if len(selected) < count:
             st.warning(f"⚠️ Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}. Budget insufficiente o giocatori non disponibili.")
-            st.write(f"Giocatori trovati: {len(selected)}, necessari: {count}")
             return None, None
 
         team.extend(selected)
@@ -99,6 +100,13 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
     if total_cost <= budget:
         return team, total_cost
     else:
+        return None, None
+
+def generate_team(database, budget=500, strategy="Equilibrata"):
+    if strategy == "Casuale":  # Usa la nuova funzione per la strategia casuale
+        return generate_random_team(database, budget)
+    else:
+        # Logica per le altre strategie (da implementare)
         return None, None
 
 def export_to_csv(team):
@@ -117,7 +125,7 @@ payment_type = st.radio("Tipo di generazione", ["One Shot (1 strategia)", "Compl
 budget = st.number_input(" Inserisci il budget", min_value=100, value=500, step=1)  # Budget da 100 in su
 
 # Selezione strategia di generazione
-strategies = ["Equilibrata", "Top Player Oriented", "Squadra Diversificata", "Modificatore di Difesa"]
+strategies = ["Equilibrata", "Top Player Oriented", "Squadra Diversificata", "Modificatore di Difesa", "Casuale"]
 
 if payment_type == "One Shot (1 strategia)":
     strategy = st.selectbox(" Seleziona la strategia di generazione", strategies)
