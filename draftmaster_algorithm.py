@@ -73,17 +73,16 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
     
     for role, count in ROLES.items():
         players = sorted([p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0], key=lambda x: x['Fantamedia'], reverse=True)
-        selected = []
-        role_budget = budget_per_role[role]
         
-        for player in players:
-            if len(selected) < count and player['Quotazione'] <= role_budget:
-                selected.append(player)
-                role_budget -= player['Quotazione']
-                remaining_budget -= player['Quotazione']
-            
-            if len(selected) >= count:
-                break
+        # Aggiungi variabilità alla selezione in base alla strategia
+        if strategy == "Equilibrata":
+            selected = random.sample(players[:int(len(players) * 0.6)], min(count, len(players[:int(len(players) * 0.6)])))
+        elif strategy == "Top Player Oriented":
+            selected = random.sample(players[:int(len(players) * 0.3)], min(count, len(players[:int(len(players) * 0.3)])))
+        elif strategy == "Squadra Diversificata":
+            selected = random.sample(players[:int(len(players) * 0.8)], min(count, len(players[:int(len(players) * 0.8)])))
+        else:
+            selected = random.sample(players[:int(len(players) * 0.5)], min(count, len(players[:int(len(players) * 0.5)])))
         
         if len(selected) < count:
             st.warning(f"⚠️ Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}. Verifica che il budget sia sufficiente.")
