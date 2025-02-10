@@ -88,18 +88,7 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
                 break  # Se non ci sono abbastanza giocatori, si interrompe
             
             try:
-                if strategy == "Equilibrata":
-                    selected = random.sample(players[:int(len(players) * 0.6)], min(count, len(players[:int(len(players) * 0.6)])))
-                elif strategy == "Top Player Oriented":
-                    top_players = players[:max(5, int(len(players) * 0.3))]
-                    selected = random.sample(top_players, min(count, len(top_players)))
-                elif strategy == "Modificatore di Difesa":
-                    if role in ["Portiere", "Difensore"]:
-                        selected = random.sample(players[:max(5, int(len(players) * 0.3))], min(count, len(players[:max(5, int(len(players) * 0.3))])))
-                    else:
-                        selected = random.sample(players[:max(5, int(len(players) * 0.7))], min(count, len(players[:max(5, int(len(players) * 0.7))])))
-                else:
-                    selected = random.sample(players[:int(len(players) * 0.5)], min(count, len(players[:int(len(players) * 0.5)])))
+                selected = random.sample(players[:int(len(players) * 0.6)], min(count, len(players[:int(len(players) * 0.6)])))
             except:
                 break  # Se non trova abbastanza giocatori, esce
             
@@ -149,7 +138,7 @@ if database is None:
 if st.button("🛠️ Genera Squadra"):
     for strategy in strategy_list:
         team, total_cost = generate_team(database, budget, strategy)
-        if team:
+        if team and total_cost >= budget * 0.95:
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost:.2f}")
             st.write("### Squadra generata:")
             st.write(pd.DataFrame(team))
