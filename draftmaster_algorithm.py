@@ -55,7 +55,7 @@ def load_database():
         return None
 
 
-def generate_team(database, budget=500, strategy="Equilibrata"):
+def generate_team(database, strategy="Equilibrata"):
     ROLES = {
         "Portiere": 3,
         "Difensore": 8,
@@ -67,6 +67,7 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
     max_attempts = 100  # Maggiore casualità e ottimizzazione
     best_team = None
     best_cost = 0
+    budget = 500  # Impostiamo il budget standard su 500 crediti
     
     while attempts < max_attempts:
         selected_team = []
@@ -117,8 +118,6 @@ st.markdown("""---
 # Selezione tipo di pagamento
 payment_type = st.radio("Tipo di generazione", ["One Shot (1 strategia)", "Complete (3 strategie)"])
 
-budget = st.selectbox("💰 Seleziona il budget", list(range(200, 2001, 50)))
-
 # Selezione strategia di generazione
 strategies = ["Equilibrata", "Top Player Oriented", "Modificatore di Difesa"]
 
@@ -134,9 +133,9 @@ if database is None:
 
 if st.button("🛠️ Genera Squadra"):
     for strategy in strategy_list:
-        team, total_cost = generate_team(database, budget, strategy)
-        if team and total_cost >= budget * 0.95:
-            st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost:.2f}")
+        team, total_cost = generate_team(database, strategy)
+        if team and total_cost >= 500 * 0.95:
+            st.success(f"✅ Squadra generata con successo ({strategy})! Percentuale budget utilizzato: {(total_cost / 500) * 100:.2f}%")
             st.write("### Squadra generata:")
             st.write(pd.DataFrame(team))
             csv_data = export_to_csv(team)
