@@ -105,8 +105,43 @@ def generate_random_team(database, budget=500):
 def generate_team(database, budget=500, strategy="Equilibrata"):
     if strategy == "Casuale":  # Usa la nuova funzione per la strategia casuale
         return generate_random_team(database, budget)
+    elif strategy == "Equilibrata":
+        ROLES = ["Attaccante", "Centrocampista", "Difensore", "Portiere"]  # Ordine di priorità
+
+        normalize_quotations(database, budget)
+        team = []
+        remaining_budget = budget
+
+        for role in ROLES:
+            count = 8 if role in ["Centrocampista", "Difensore"] else 6 if role == "Attaccante" else 3
+            players = sorted([p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0], 
+                           key=calculate_player_score, reverse=True)
+            selected = []
+
+            for _ in range(count):
+                eligible_players = [p for p in players if p['Quotazione'] <= remaining_budget]
+                if not eligible_players:
+                    break
+
+                scored_players = sorted(eligible_players, key=lambda x: (calculate_player_score(x), random.random()), reverse=True)
+                if scored_players:
+                    selected_player = scored_players[0]
+                    selected.append(selected_player)
+                    remaining_budget -= selected_player['Quotazione']
+                    players.remove(selected_player)
+
+            if len(selected) < count:
+                st.warning(f"⚠️ Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}. Budget insufficiente o giocatori non disponibili.")
+                return None, None
+
+            team.extend(selected)
+
+        total_cost = sum(p['Quotazione'] for p in team)
+        if total_cost <= budget:
+            return team, total_cost
+        else:
+            return None, None
     else:
-        # Logica per le altre strategie (da implementare)
         return None, None
 
 def export_to_csv(team):
@@ -146,7 +181,4 @@ if st.button("️ Genera Squadra"):
             for player in team:
                 st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Cost: {player['Quotazione']:.2f} - Fantamedia: {player['Fantamedia']:.2f} - Media Voto: {player['Media_Voto']:.2f} - Presenze: {player['Partite_Voto']}")
 
-            csv_data = export_to_csv(team)
-            st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
-        else:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo basso o non ci sono abbastanza giocatori disponibili.")
+            csv_data =
