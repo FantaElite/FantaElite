@@ -1,21 +1,32 @@
 import streamlit as st
 import pandas as pd
-import os
-import random
-import io
-import requests
 
-# Carica il database Excel automaticamente
+# 🔴 Pulizia cache per evitare errori precedenti
+st.cache_data.clear()
+
+# 🔹 Funzione per caricare e pulire il database
 @st.cache_data
 def load_database():
     url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio_v2.csv"
+    
     try:
         df = pd.read_csv(url, encoding="utf-8", delimiter=';')
 
-        # Rimuove eventuali spazi prima e dopo i nomi delle colonne
+        # 🔹 Rimuove spazi nei nomi delle colonne
         df.columns = df.columns.str.strip()
 
-        # Mappa i nuovi nomi delle colonne corretti
+        # 🔹 Mostra anteprima del dataset originale
+        st.write("📌 **Anteprima del Database Originale:**")
+        st.dataframe(df.head())
+
+        # 🔹 Mostra i tipi di dati originali
+        st.write("🔍 **Tipi di Dati Originali:**")
+        st.write(df.dtypes)
+
+        # 🔹 Controlla valori NaN nella colonna "Ruolo"
+        st.write("⚠️ **Valori NaN nella colonna Ruolo:**", df["Ruolo"].isna().sum())
+
+        # 🔹 Rinomina le colonne
         column_mapping = {
             "Nome": "Nome",
             "Squadra": "Squadra",
@@ -25,61 +36,38 @@ def load_database():
             "Quotazione": "Quotazione",
             "Partite_Voto": "Partite_Voto"
         }
-
         df.rename(columns=column_mapping, inplace=True)
 
-        # Controllo colonne mancanti
-        expected_columns = list(column_mapping.values())
-        missing_columns = [col for col in expected_columns if col not in df.columns]
-        if missing_columns:
-            st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Ecco le colonne trovate: {df.columns.tolist()}")
-            return None
+        # 🔹 Forza la colonna "Ruolo" a essere una stringa e riempie i NaN con "Sconosciuto"
+        df["Ruolo"] = df["Ruolo"].astype(str)  # Converte tutto in stringa
+        df["Ruolo"] = df["Ruolo"].fillna("Sconosciuto")  # Riempie eventuali NaN
+        df["Ruolo"] = df["Ruolo"].str.strip()  # Rimuove spazi extra
 
-        # Converti le colonne al tipo stringa
-        cols_da_convertire = ["Nome", "Squadra", "Ruolo"]
-        for col in cols_da_convertire:
-            if col in df.columns:  # Verifica se la colonna esiste
-                df[col] = df[col].astype(str, errors='coerce')
+        # 🔹 Converte i numeri e sostituisce le virgole con punti
+        numeric_columns = ["Quotazione", "Fantamedia", "Media_Voto", "Partite_Voto"]
+        for col in numeric_columns:
+            df[col] = df[col].astype(str).str.replace(",", ".", regex=False)  # Sostituisce virgole con punti
+            df[col] = pd.to_numeric(df[col], errors="coerce")  # Converte in numerico
 
-        # Converte le colonne numeriche e gestisce le virgole
-        numeric_cols = ["Quotazione", "Fantamedia", "Media_Voto", "Partite_Voto"]
-        for col in numeric_cols:
-            if col in df.columns: #Verifica se la colonna esiste
-                df[col] = pd.to_numeric(df[col].str.replace(",", "."), errors="coerce")
+        # 🔹 Controlla se ci sono ancora valori NaN nelle colonne numeriche
+        for col in numeric_columns:
+            df[col] = df[col].fillna(0)  # Riempie i NaN con 0
 
-
-        # Riempie i valori NaN in Quotazione con 0
-        df["Quotazione"].fillna(0, inplace=True)
-
-        # Se Fantamedia è presente ma Media Voto è NaN, assegna Media Voto = Fantamedia
-        df.loc[df["Media_Voto"].isna() & df["Fantamedia"].notna(), "Media_Voto"] = df["Fantamedia"]
-
-        # Validazione dei dati (esempio: controllo valori positivi per Quotazione)
-        if "Quotazione" in df.columns and not df["Quotazione"].ge(0).all():
-            st.error("Errore: La colonna 'Quotazione' contiene valori negativi.")
-            return None
+        # 🔹 Mostra i tipi di dati dopo la conversione
+        st.write("✅ **Tipi di Dati Dopo la Conversione:**")
+        st.write(df.dtypes)
 
         return df.to_dict(orient='records')
-    except FileNotFoundError:
-        st.error(f"Errore: File non trovato all'URL specificato.")
-        return None
-    except pd.errors.ParserError:
-        st.error("Errore: Errore nel parsing del file CSV. Controlla il formato.")
-        return None
-    except requests.exceptions.RequestException as e:  # Gestione errore di richiesta HTTP
-        st.error(f"Errore nella richiesta del file CSV: {e}")
-        return None
+
     except Exception as e:
-        st.error(f"Errore generico nel caricamento del database: {e}")
+        st.error(f"Errore nel caricamento del database: {e}")
         return None
 
-def generate_team(database, budget=500, strategy="Equilibrata", max_attempts=10):
-    # ... (resto del codice generate_team)
+# 🔹 Caricamento Database
+database = load_database()
 
-def sort_players(players, strategy, role):
-    # ... (resto del codice sort_players)
+# 🔹 Se il database non è stato caricato, interrompi il programma
+if database is None:
+    st.stop()
 
-def export_to_csv(team):
-    # ... (resto del codice export_to_csv)
-
-# ... (resto del codice Streamlit)
+st.write("✅ **Database caricato con successo!**")
