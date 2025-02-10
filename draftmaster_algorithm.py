@@ -141,44 +141,41 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
             return team, total_cost
         else:
             return None, None
-    else:
-        return None, None
+    elif strategy == "Top Player Oriented":  # Esempio: "Top Player Oriented" strategy
+        ROLES = ["Attaccante", "Centrocampista", "Difensore", "Portiere"]
+        normalize_quotations(database, budget)
+        team = []
+        remaining_budget = budget
 
-def export_to_csv(team):
-    df = pd.DataFrame(team)
-    return df.to_csv(index=False, sep=';', decimal=',', encoding='utf-8').encode('utf-8')
+        # Ordina per Fantamedia, poi randomizza tra i migliori giocatori
+        for role in ROLES:
+            count = 8 if role in ["Centrocampista", "Difensore"] else 6 if role == "Attaccante" else 3
+            players = sorted([p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0],
+                           key=lambda x: (x['Fantamedia'], random.random()), reverse=True)  # Aggiungi random.random()
+            selected = []
 
-# Web App con Streamlit
-st.title("⚽ FantaElite - Generatore di Rose Fantacalcio ⚽")
-st.markdown("""---
-### Scegli il tuo metodo di acquisto
-""")
+            for player in players:
+                if len(selected) < count and player['Quotazione'] <= remaining_budget:
+                    selected.append(player)
+                    remaining_budget -= player['Quotazione']
 
-# Selezione tipo di pagamento
-payment_type = st.radio("Tipo di generazione", ["One Shot (1 strategia)", "Complete (4 strategie)"])
+            if len(selected) < count:
+                st.warning(f"⚠️ Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}. Budget insufficiente o giocatori non disponibili.")
+                return None, None
 
-budget = st.number_input(" Inserisci il budget", min_value=100, value=500, step=1)  # Budget da 100 in su
+            team.extend(selected)
 
-# Selezione strategia di generazione
-strategies = ["Equilibrata", "Top Player Oriented", "Squadra Diversificata", "Modificatore di Difesa", "Casuale"]
+        total_cost = sum(p['Quotazione'] for p in team)
+        if total_cost <= budget:
+            return team, total_cost
+        else:
+            return None, None
+    elif strategy == "Squadra Diversificata":  # Esempio: "Squadra Diversificata" strategy
+        ROLES = ["Attaccante", "Centrocampista", "Difensore", "Portiere"]
+        normalize_quotations(database, budget)
+        team = []
+        remaining_budget = budget
+        squadre_selezionate = set()  # Set per tenere traccia delle squadre già selezionate
 
-if payment_type == "One Shot (1 strategia)":
-    strategy = st.selectbox(" Seleziona la strategia di generazione", strategies)
-    strategy_list = [strategy]
-else:
-    strategy_list = strategies
-
-database = load_database()
-if database is None:
-    st.stop()
-
-if st.button("️ Genera Squadra"):
-    for strategy in strategy_list:
-        team, total_cost = generate_team(database, budget, strategy)
-        if team:
-            st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost:.2f}")
-            st.write("### Squadra generata:")
-            for player in team:
-                st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Cost: {player['Quotazione']:.2f} - Fantamedia: {player['Fantamedia']:.2f} - Media Voto: {player['Media_Voto']:.2f} - Presenze: {player['Partite_Voto']}")
-
-            csv_data =
+        for role in ROLES:
+            count = 8 if role in ["Centrocampista", "Difensore"] else 6 if role ==
