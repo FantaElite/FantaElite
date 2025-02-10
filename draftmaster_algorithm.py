@@ -69,14 +69,18 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
     normalize_quotations(database, budget)
     team = []
     attempts = 0
-    max_attempts = 10
+    max_attempts = 50  # Aumentato per maggiore casualità e ottimizzazione
     
     while attempts < max_attempts:
         selected_team = []
+        total_cost = 0
+        
         for role, count in ROLES.items():
-            players = sorted([p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0],
-                             key=lambda x: (x['Quotazione'] * 0.5 + x['Partite_Voto'] * 0.3 + x['Fantamedia'] * 0.2),
-                             reverse=True)
+            players = sorted(
+                [p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0],
+                key=lambda x: (x['Quotazione'] * 0.4 + x['Partite_Voto'] * 0.3 + x['Fantamedia'] * 0.3),
+                reverse=True
+            )
             
             if strategy == "Equilibrata":
                 selected = random.sample(players[:int(len(players) * 0.6)], min(count, len(players[:int(len(players) * 0.6)])))
@@ -92,8 +96,8 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
                 selected = random.sample(players[:int(len(players) * 0.5)], min(count, len(players[:int(len(players) * 0.5)])))
             
             selected_team.extend(selected)
+            total_cost += sum(p['Quotazione'] for p in selected)
         
-        total_cost = sum(p['Quotazione'] for p in selected_team)
         if total_cost >= budget * 0.95:
             return selected_team, total_cost
         
