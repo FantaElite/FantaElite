@@ -45,17 +45,14 @@ def load_database():
         # Assicura che la colonna "Ruolo" sia trattata come stringa senza NaN
         df["Ruolo"] = df["Ruolo"].astype(str).str.strip().fillna("Sconosciuto")
         
+        # Convertiamo la quotazione in percentuale rispetto a un budget di 500 crediti
+        df["Quota_Percentuale"] = df["Quotazione"] / 500.0  # Calcola la quota come frazione del budget standard
+        
         return df.to_dict(orient='records')
     
     except Exception as e:
         st.error(f"Errore nel caricamento del database: {e}")
         return None
-
-
-def normalize_quotations(database, budget):
-    original_budget = 500  # Le quotazioni originali sono basate su 500 crediti
-    for player in database:
-        player['Quotazione'] = max(round(player['Quotazione'] * (budget / original_budget), 2), 1)  # Assicura minimo 1 credito
 
 
 def generate_team(database, budget=500, strategy="Equilibrata"):
@@ -65,8 +62,6 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
         "Centrocampista": 8,
         "Attaccante": 6
     }
-
-    normalize_quotations(database, budget)
     
     attempts = 0
     max_attempts = 100  # Maggiore casualità e ottimizzazione
@@ -80,7 +75,7 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
         for role, count in ROLES.items():
             players = sorted(
                 [p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0],
-                key=lambda x: (x['Quotazione'] * 0.4 + x['Partite_Voto'] * 0.3 + x['Fantamedia'] * 0.3),
+                key=lambda x: (x['Quota_Percentuale'] * budget * 0.4 + x['Partite_Voto'] * 0.3 + x['Fantamedia'] * 0.3),
                 reverse=True
             )
             
@@ -95,7 +90,7 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
                 break  # Se non trova abbastanza giocatori, esce
             
             selected_team.extend(selected)
-            total_cost += sum(p['Quotazione'] for p in selected)
+            total_cost += sum(p['Quota_Percentuale'] * budget for p in selected)
         
         if total_cost >= budget * 0.95:
             return selected_team, total_cost
