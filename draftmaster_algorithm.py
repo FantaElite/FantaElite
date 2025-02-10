@@ -68,41 +68,38 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
 
     normalize_quotations(database, budget)
     team = []
-    used_teams = {role: set() for role in ROLES.keys()}
+    attempts = 0
+    max_attempts = 10
     
-    for role, count in ROLES.items():
-        players = sorted([p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0],
-                         key=lambda x: (x['Quotazione'] * 0.5 + x['Partite_Voto'] * 0.3 + x['Fantamedia'] * 0.2),
-                         reverse=True)
-        
-        if strategy == "Equilibrata":
-            selected = random.sample(players[:int(len(players) * 0.6)], min(count, len(players[:int(len(players) * 0.6)])))
-        elif strategy == "Top Player Oriented":
-            top_players = players[:int(len(players) * 0.3)]
-            selected = random.sample(top_players, min(count, len(top_players)))
-        elif strategy == "Squadra Diversificata":
-            selected = []
-            for player in players:
-                if len(selected) >= count:
-                    break
-                if selected.count(player['Squadra']) < 2:
-                    selected.append(player)
-        elif strategy == "Modificatore di Difesa":
-            if role in ["Portiere", "Difensore"]:
-                selected = random.sample(players[:int(len(players) * 0.4)], min(count, len(players[:int(len(players) * 0.4)])))
+    while attempts < max_attempts:
+        selected_team = []
+        for role, count in ROLES.items():
+            players = sorted([p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0],
+                             key=lambda x: (x['Quotazione'] * 0.5 + x['Partite_Voto'] * 0.3 + x['Fantamedia'] * 0.2),
+                             reverse=True)
+            
+            if strategy == "Equilibrata":
+                selected = random.sample(players[:int(len(players) * 0.6)], min(count, len(players[:int(len(players) * 0.6)])))
+            elif strategy == "Top Player Oriented":
+                top_players = players[:int(len(players) * 0.3)]
+                selected = random.sample(top_players, min(count, len(top_players)))
+            elif strategy == "Modificatore di Difesa":
+                if role in ["Portiere", "Difensore"]:
+                    selected = random.sample(players[:int(len(players) * 0.3)], min(count, len(players[:int(len(players) * 0.3)])))
+                else:
+                    selected = random.sample(players[:int(len(players) * 0.7)], min(count, len(players[:int(len(players) * 0.7)])))
             else:
-                selected = random.sample(players[:int(len(players) * 0.7)], min(count, len(players[:int(len(players) * 0.7)])))
-        else:
-            selected = random.sample(players[:int(len(players) * 0.5)], min(count, len(players[:int(len(players) * 0.5)])))
+                selected = random.sample(players[:int(len(players) * 0.5)], min(count, len(players[:int(len(players) * 0.5)])))
+            
+            selected_team.extend(selected)
         
-        if len(selected) < count:
-            st.warning(f"⚠️ Attenzione: non è stato possibile selezionare abbastanza giocatori per il ruolo {role}. Verifica che il budget sia sufficiente.")
-            return None, None
+        total_cost = sum(p['Quotazione'] for p in selected_team)
+        if total_cost >= budget * 0.95:
+            return selected_team, total_cost
         
-        team.extend(selected)
+        attempts += 1
     
-    total_cost = sum(p['Quotazione'] for p in team)
-    return team, total_cost if total_cost <= budget else None
+    return None, None
 
 
 def export_to_csv(team):
@@ -116,12 +113,12 @@ st.markdown("""---
 """)
 
 # Selezione tipo di pagamento
-payment_type = st.radio("Tipo di generazione", ["One Shot (1 strategia)", "Complete (4 strategie)"])
+payment_type = st.radio("Tipo di generazione", ["One Shot (1 strategia)", "Complete (3 strategie)"])
 
 budget = st.number_input("💰 Inserisci il budget", min_value=100, value=500, step=10)
 
 # Selezione strategia di generazione
-strategies = ["Equilibrata", "Top Player Oriented", "Squadra Diversificata", "Modificatore di Difesa"]
+strategies = ["Equilibrata", "Top Player Oriented", "Modificatore di Difesa"]
 
 if payment_type == "One Shot (1 strategia)":
     strategy = st.selectbox("🎯 Seleziona la strategia di generazione", strategies)
