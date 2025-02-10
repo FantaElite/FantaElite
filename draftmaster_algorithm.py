@@ -68,19 +68,30 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
 
     normalize_quotations(database, budget)
     team = []
-    remaining_budget = budget
-    budget_per_role = {role: budget * (count / sum(ROLES.values())) for role, count in ROLES.items()}
+    used_teams = {role: set() for role in ROLES.keys()}
     
     for role, count in ROLES.items():
-        players = sorted([p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0], key=lambda x: x['Fantamedia'], reverse=True)
+        players = sorted([p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0],
+                         key=lambda x: (x['Quotazione'] * 0.5 + x['Partite_Voto'] * 0.3 + x['Fantamedia'] * 0.2),
+                         reverse=True)
         
-        # Aggiungi variabilità alla selezione in base alla strategia
         if strategy == "Equilibrata":
             selected = random.sample(players[:int(len(players) * 0.6)], min(count, len(players[:int(len(players) * 0.6)])))
         elif strategy == "Top Player Oriented":
-            selected = random.sample(players[:int(len(players) * 0.3)], min(count, len(players[:int(len(players) * 0.3)])))
+            top_players = players[:int(len(players) * 0.3)]
+            selected = random.sample(top_players, min(count, len(top_players)))
         elif strategy == "Squadra Diversificata":
-            selected = random.sample(players[:int(len(players) * 0.8)], min(count, len(players[:int(len(players) * 0.8)])))
+            selected = []
+            for player in players:
+                if len(selected) >= count:
+                    break
+                if selected.count(player['Squadra']) < 2:
+                    selected.append(player)
+        elif strategy == "Modificatore di Difesa":
+            if role in ["Portiere", "Difensore"]:
+                selected = random.sample(players[:int(len(players) * 0.4)], min(count, len(players[:int(len(players) * 0.4)])))
+            else:
+                selected = random.sample(players[:int(len(players) * 0.7)], min(count, len(players[:int(len(players) * 0.7)])))
         else:
             selected = random.sample(players[:int(len(players) * 0.5)], min(count, len(players[:int(len(players) * 0.5)])))
         
@@ -128,9 +139,7 @@ if st.button("🛠️ Genera Squadra"):
         if team:
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost:.2f}")
             st.write("### Squadra generata:")
-            for player in team:
-                st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Cost: {player['Quotazione']:.2f} - Fantamedia: {player['Fantamedia']:.2f} - Media Voto: {player['Media_Voto']:.2f} - Presenze: {player['Partite_Voto']}")
-            
+            st.write(pd.DataFrame(team))
             csv_data = export_to_csv(team)
             st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
         else:
