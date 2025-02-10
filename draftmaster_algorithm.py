@@ -96,4 +96,49 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
         team.extend(selected)
 
     total_cost = sum(p['Quotazione'] for p in team)
-    return team, total_cost if total_cost <=
+    if total_cost <= budget:
+        return team, total_cost
+    else:
+        return None, None
+
+def export_to_csv(team):
+    df = pd.DataFrame(team)
+    return df.to_csv(index=False, sep=';', decimal=',', encoding='utf-8').encode('utf-8')
+
+# Web App con Streamlit
+st.title("⚽ FantaElite - Generatore di Rose Fantacalcio ⚽")
+st.markdown("""---
+### Scegli il tuo metodo di acquisto
+""")
+
+# Selezione tipo di pagamento
+payment_type = st.radio("Tipo di generazione", ["One Shot (1 strategia)", "Complete (4 strategie)"])
+
+budget = st.number_input(" Inserisci il budget", min_value=100, value=500, step=1)  # Budget da 100 in su
+
+# Selezione strategia di generazione
+strategies = ["Equilibrata", "Top Player Oriented", "Squadra Diversificata", "Modificatore di Difesa"]
+
+if payment_type == "One Shot (1 strategia)":
+    strategy = st.selectbox(" Seleziona la strategia di generazione", strategies)
+    strategy_list = [strategy]
+else:
+    strategy_list = strategies
+
+database = load_database()
+if database is None:
+    st.stop()
+
+if st.button("️ Genera Squadra"):
+    for strategy in strategy_list:
+        team, total_cost = generate_team(database, budget, strategy)
+        if team:
+            st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost:.2f}")
+            st.write("### Squadra generata:")
+            for player in team:
+                st.write(f"{player['Ruolo']}: {player['Nome']} ({player['Squadra']}) - Cost: {player['Quotazione']:.2f} - Fantamedia: {player['Fantamedia']:.2f} - Media Voto: {player['Media_Voto']:.2f} - Presenze: {player['Partite_Voto']}")
+
+            csv_data = export_to_csv(team)
+            st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
+        else:
+            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo basso o non ci sono abbastanza giocatori disponibili.")
