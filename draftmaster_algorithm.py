@@ -70,7 +70,12 @@ def generate_random_team(database, budget=500):
     remaining_budget = budget
 
     for role in ROLES:
-        count = 8 if role in ["Centrocampista", "Difensore"] else 6 if role == "Attaccante" else 3
+        if role in ["Centrocampista", "Difensore"]:
+            count = 8
+        elif role == "Attaccante":
+            count = 6
+        else:  # Portiere
+            count = 3
         role_players = [p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0]
         selected = []
 
@@ -113,7 +118,12 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
         remaining_budget = budget
 
         for role in ROLES:
-            count = 8 if role in ["Centrocampista", "Difensore"] else 6 if role == "Attaccante" else 3
+            if role in ["Centrocampista", "Difensore"]:
+                count = 8
+            elif role == "Attaccante":
+                count = 6
+            else:  # Portiere
+                count = 3
             players = sorted([p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0], 
                            key=calculate_player_score, reverse=True)
             selected = []
@@ -149,7 +159,12 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
 
         # Ordina per Fantamedia, poi randomizza tra i migliori giocatori
         for role in ROLES:
-            count = 8 if role in ["Centrocampista", "Difensore"] else 6 if role == "Attaccante" else 3
+            if role in ["Centrocampista", "Difensore"]:
+                count = 8
+            elif role == "Attaccante":
+                count = 6
+            else:  # Portiere
+                count = 3
             players = sorted([p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0],
                            key=lambda x: (x['Fantamedia'], random.random()), reverse=True)  # Aggiungi random.random()
             selected = []
@@ -175,7 +190,4 @@ def generate_team(database, budget=500, strategy="Equilibrata"):
         normalize_quotations(database, budget)
         team = []
         remaining_budget = budget
-        squadre_selezionate = set()  # Set per tenere traccia delle squadre già selezionate
-
-        for role in ROLES:
-            count = 8 if role in ["Centrocampista", "Difensore"] else 6 if role ==
+        squad
