@@ -93,7 +93,7 @@ def generate_team(database, strategy="Equilibrata"):
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
         
-        if total_cost_percentage >= target_budget:
+        if total_cost_percentage >= target_budget and total_cost_percentage <= 100:
             return selected_team, total_cost_percentage
         
         if total_cost_percentage > best_cost:
