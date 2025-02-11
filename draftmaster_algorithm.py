@@ -20,7 +20,7 @@ def load_database():
             "Ruolo": "Ruolo",
             "Media_Voto": "Media_Voto",
             "Fantamedia": "Fantamedia",
-            "Quotazione": "Quotazione",
+            "Quotazione": "Quota_Percentuale",
             "Partite_Voto": "Partite_Voto"
         }
         
@@ -34,19 +34,19 @@ def load_database():
             return None
 
         # Converti le colonne numeriche correggendo eventuali errori
-        numeric_columns = ["Quotazione", "Fantamedia", "Media_Voto", "Partite_Voto"]
+        numeric_columns = ["Quota_Percentuale", "Fantamedia", "Media_Voto", "Partite_Voto"]
         
         for col in numeric_columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")  # Converte i valori non numerici in NaN
         
         # Riempie solo i valori NaN con la media delle quotazioni esistenti
-        df["Quotazione"].fillna(df["Quotazione"].mean(), inplace=True)
+        df["Quota_Percentuale"].fillna(df["Quota_Percentuale"].mean(), inplace=True)
         
         # Assicura che la colonna "Ruolo" sia trattata come stringa senza NaN
         df["Ruolo"] = df["Ruolo"].astype(str).str.strip().fillna("Sconosciuto")
         
         # Convertiamo la quotazione in percentuale rispetto a un budget di 500 crediti
-        df["Quota_Percentuale"] = df["Quotazione"] / 500.0  # Calcola la quota come frazione del budget standard
+        df["Quota_Percentuale"] = df["Quota_Percentuale"] / 500.0  # Calcola la quota come frazione del budget standard
         
         return df.to_dict(orient='records')
     
@@ -67,16 +67,15 @@ def generate_team(database, strategy="Equilibrata"):
     max_attempts = 100  # Maggiore casualità e ottimizzazione
     best_team = None
     best_cost = 0
-    budget = 500  # Impostiamo il budget standard su 500 crediti
     
     while attempts < max_attempts:
         selected_team = []
-        total_cost = 0
+        total_cost_percentage = 0
         
         for role, count in ROLES.items():
             players = sorted(
-                [p for p in database if str(p['Ruolo']).strip() == role and p['Quotazione'] > 0],
-                key=lambda x: (x['Quota_Percentuale'] * budget * 0.4 + x['Partite_Voto'] * 0.3 + x['Fantamedia'] * 0.3),
+                [p for p in database if str(p['Ruolo']).strip() == role and p['Quota_Percentuale'] > 0],
+                key=lambda x: (x['Quota_Percentuale'] * 0.4 + x['Partite_Voto'] * 0.3 + x['Fantamedia'] * 0.3),
                 reverse=True
             )
             
@@ -91,18 +90,18 @@ def generate_team(database, strategy="Equilibrata"):
                 break  # Se non trova abbastanza giocatori, esce
             
             selected_team.extend(selected)
-            total_cost += sum(p['Quota_Percentuale'] * budget for p in selected)
+            total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
         
-        if total_cost >= budget * 0.95:
-            return selected_team, total_cost
+        if total_cost_percentage >= 0.95:
+            return selected_team, total_cost_percentage * 100
         
-        if total_cost > best_cost:
+        if total_cost_percentage > best_cost:
             best_team = selected_team
-            best_cost = total_cost
+            best_cost = total_cost_percentage
         
         attempts += 1
     
-    return best_team, best_cost
+    return best_team, best_cost * 100
 
 
 def export_to_csv(team):
@@ -133,9 +132,9 @@ if database is None:
 
 if st.button("🛠️ Genera Squadra"):
     for strategy in strategy_list:
-        team, total_cost = generate_team(database, strategy)
-        if team and total_cost >= 500 * 0.95:
-            st.success(f"✅ Squadra generata con successo ({strategy})! Percentuale budget utilizzato: {(total_cost / 500) * 100:.2f}%")
+        team, total_cost_percentage = generate_team(database, strategy)
+        if team and total_cost_percentage >= 95:
+            st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
             st.write("### Squadra generata:")
             st.write(pd.DataFrame(team))
             csv_data = export_to_csv(team)
