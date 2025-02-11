@@ -64,7 +64,7 @@ def generate_team(database, strategy="Equilibrata"):
     }
     
     attempts = 0
-    max_attempts = 100  # Maggiore casualità e ottimizzazione
+    max_attempts = 128  # Maggiore casualità e ottimizzazione
     best_team = None
     best_cost = 0
     target_budget = 95  # Usa almeno il 95% del budget
@@ -76,14 +76,14 @@ def generate_team(database, strategy="Equilibrata"):
         for role, count in ROLES.items():
             players = sorted(
                 [p for p in database if str(p['Ruolo']).strip() == role and p['Quota_Percentuale'] > 0],
-                key=lambda x: (x['Quota_Percentuale'] * 0.4 + x['Partite_Voto'] * 0.3 + x['Fantamedia'] * 0.3),
+                key=lambda x: (x['Quota_Percentuale'] * 0.33 + x['Partite_Voto'] * 0.33 + x['Fantamedia'] * 0.34),
                 reverse=True
             )
             
             if not players or len(players) < count:
                 break  # Se non ci sono abbastanza giocatori, si interrompe
             
-            selected = random.sample(players[:count * 2], count)  # Assicura esattamente il numero giusto di giocatori
+            selected = random.sample(players[:count * 3], count)  # Maggiore variazione nei giocatori
             
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
