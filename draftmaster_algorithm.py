@@ -83,15 +83,22 @@ def generate_team(database, strategy="Equilibrata"):
             if not players:
                 break  # Se non ci sono abbastanza giocatori, si interrompe
             
-            # Seleziona i migliori candidati e garantisce casualità
-            max_players = max(int(len(players) * 0.8), count)  # Usa fino all'80% della lista ordinata
-            try:
-                selected = random.sample(players[:max_players], min(count, len(players[:max_players])))
-            except:
-                break  # Se non trova abbastanza giocatori, esce
+            # Seleziona più giocatori candidati per garantire più casualità
+            max_players = max(int(len(players) * 0.9), count)  # Usa fino al 90% della lista ordinata
+            selected = random.sample(players[:max_players], min(count, len(players[:max_players])))
             
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
+        
+        # Aggiustamento finale per avvicinarsi al 100%
+        if total_cost_percentage < target_budget:
+            sorted_players = sorted(database, key=lambda x: x['Quota_Percentuale'], reverse=True)
+            for p in sorted_players:
+                if p not in selected_team and total_cost_percentage + p['Quota_Percentuale'] <= 100:
+                    selected_team.append(p)
+                    total_cost_percentage += p['Quota_Percentuale']
+                if total_cost_percentage >= target_budget:
+                    break
         
         if total_cost_percentage >= target_budget and total_cost_percentage <= 100:
             return selected_team, total_cost_percentage
