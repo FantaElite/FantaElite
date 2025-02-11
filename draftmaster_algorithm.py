@@ -46,7 +46,7 @@ def load_database():
         df["Ruolo"] = df["Ruolo"].astype(str).str.strip().fillna("Sconosciuto")
         
         # Convertiamo la quotazione in percentuale rispetto a un budget di 500 crediti
-        df["Quota_Percentuale"] = df["Quota_Percentuale"] / 500.0  # Calcola la quota come frazione del budget standard
+        df["Quota_Percentuale"] = (df["Quota_Percentuale"] / 500.0) * 100  # Converte in percentuale
         
         return df.to_dict(orient='records')
     
@@ -67,6 +67,7 @@ def generate_team(database, strategy="Equilibrata"):
     max_attempts = 100  # Maggiore casualità e ottimizzazione
     best_team = None
     best_cost = 0
+    target_budget = 95  # Usa almeno il 95% del budget
     
     while attempts < max_attempts:
         selected_team = []
@@ -82,7 +83,7 @@ def generate_team(database, strategy="Equilibrata"):
             if not players:
                 break  # Se non ci sono abbastanza giocatori, si interrompe
             
-            # Prova a selezionare giocatori, espandendo la selezione se non ci sono abbastanza candidati
+            # Seleziona i migliori candidati e garantisce casualità
             max_players = max(int(len(players) * 0.8), count)  # Usa fino all'80% della lista ordinata
             try:
                 selected = random.sample(players[:max_players], min(count, len(players[:max_players])))
@@ -92,8 +93,8 @@ def generate_team(database, strategy="Equilibrata"):
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
         
-        if total_cost_percentage >= 0.95:
-            return selected_team, total_cost_percentage * 100
+        if total_cost_percentage >= target_budget:
+            return selected_team, total_cost_percentage
         
         if total_cost_percentage > best_cost:
             best_team = selected_team
@@ -101,7 +102,7 @@ def generate_team(database, strategy="Equilibrata"):
         
         attempts += 1
     
-    return best_team, best_cost * 100
+    return best_team, best_cost
 
 
 def export_to_csv(team):
