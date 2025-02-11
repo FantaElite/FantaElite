@@ -80,12 +80,10 @@ def generate_team(database, strategy="Equilibrata"):
                 reverse=True
             )
             
-            if not players:
+            if not players or len(players) < count:
                 break  # Se non ci sono abbastanza giocatori, si interrompe
             
-            # Seleziona più giocatori candidati per garantire più casualità
-            max_players = max(int(len(players) * 0.9), count)  # Usa fino al 90% della lista ordinata
-            selected = random.sample(players[:max_players], min(count, len(players[:max_players])))
+            selected = random.sample(players[:count * 2], count)  # Assicura esattamente il numero giusto di giocatori
             
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
@@ -100,7 +98,7 @@ def generate_team(database, strategy="Equilibrata"):
                 if total_cost_percentage >= target_budget:
                     break
         
-        if total_cost_percentage >= target_budget and total_cost_percentage <= 100:
+        if total_cost_percentage >= target_budget and total_cost_percentage <= 100 and len(selected_team) == 25:
             return selected_team, total_cost_percentage
         
         if total_cost_percentage > best_cost:
@@ -141,7 +139,7 @@ if database is None:
 if st.button("🛠️ Genera Squadra"):
     for strategy in strategy_list:
         team, total_cost_percentage = generate_team(database, strategy)
-        if team and total_cost_percentage >= 95:
+        if team and total_cost_percentage >= 95 and len(team) == 25:
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
             st.write("### Squadra generata:")
             st.write(pd.DataFrame(team))
