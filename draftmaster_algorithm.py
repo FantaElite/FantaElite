@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import random
 
-# Definizione budget min e max a livello globale
+# Budget percentuale min e max
 TARGET_BUDGET_MIN = 95
 TARGET_BUDGET_MAX = 100
 
@@ -88,15 +88,16 @@ def generate_team(database, strategy="Equilibrata", mode="Classic"):
                 reverse=True
             )
             
-            if not players or len(players) < count:
-                break  # Se non ci sono abbastanza giocatori, si interrompe
+            if len(players) < count:
+                st.warning(f"⚠️ Non ci sono abbastanza giocatori disponibili per il ruolo {role}.")
+                return None, 0  # Restituisce errore senza crashare
             
             selected = random.sample(players[:count * 2], count)
             
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
         
-        # Se la squadra è troppo costosa, riduci i costi rimpiazzando giocatori
+        # Se la squadra supera il budget massimo, rimuove i giocatori più costosi
         while total_cost_percentage > TARGET_BUDGET_MAX and selected_team:
             selected_team = sorted(selected_team, key=lambda x: x['Quota_Percentuale'], reverse=True)
             player_to_remove = selected_team.pop(0)
@@ -131,9 +132,6 @@ def export_to_csv(team):
 
 # Web App con Streamlit
 st.title("⚽ FantaElite - Generatore di Rose Fantacalcio ⚽")
-st.markdown("""---
-### Scegli il tuo metodo di acquisto
-""")
 
 # Selezione modalità di gioco
 mode = st.selectbox("⚙️ Seleziona la modalità di gioco", ["Classic", "Mantra"])
@@ -157,10 +155,8 @@ if database is None:
 if st.button("🛠️ Genera Squadra"):
     for strategy in strategy_list:
         team, total_cost_percentage = generate_team(database, strategy, mode)
-        if team and TARGET_BUDGET_MIN <= total_cost_percentage <= TARGET_BUDGET_MAX and len(team) == 25:
+        if team:
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
             st.write(pd.DataFrame(team))
-            csv_data = export_to_csv(team)
-            st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
         else:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}).")
+            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Controlla che ci siano abbastanza giocatori disponibili per ogni ruolo.")
