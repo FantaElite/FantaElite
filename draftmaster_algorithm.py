@@ -21,7 +21,7 @@ def load_database():
             "Ruolo_Mantra": "Ruolo_Mantra",
             "Media_Voto": "Media_Voto",
             "Fantamedia": "Fantamedia",
-            "Quota_Percentuale": "Quota_Percentuale",
+            "Quotazione": "Quota_Percentuale",
             "Partite_Voto": "Partite_Voto"
         }
         
