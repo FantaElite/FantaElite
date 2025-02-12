@@ -18,6 +18,7 @@ def load_database():
             "Nome": "Nome",
             "Squadra": "Squadra",
             "Ruolo": "Ruolo",
+            "Ruolo_Mantra": "Ruolo_Mantra",
             "Media_Voto": "Media_Voto",
             "Fantamedia": "Fantamedia",
             "Quotazione": "Quota_Percentuale",
@@ -44,6 +45,7 @@ def load_database():
         
         # Assicura che la colonna "Ruolo" sia trattata come stringa senza NaN
         df["Ruolo"] = df["Ruolo"].astype(str).str.strip().fillna("Sconosciuto")
+        df["Ruolo_Mantra"] = df["Ruolo_Mantra"].astype(str).str.strip().fillna("Sconosciuto")
         
         # Convertiamo la quotazione in percentuale rispetto a un budget di 500 crediti
         df["Quota_Percentuale"] = (df["Quota_Percentuale"] / 500.0) * 100  # Converte in percentuale
@@ -55,16 +57,22 @@ def load_database():
         return None
 
 
-def generate_team(database, strategy="Equilibrata"):
-    ROLES = {
-        "Portiere": 3,
-        "Difensore": 8,
-        "Centrocampista": 8,
-        "Attaccante": 6
-    }
+def generate_team(database, strategy="Equilibrata", mode="Classic"):
+    if mode == "Classic":
+        ROLES = {
+            "Portiere": 3,
+            "Difensore": 8,
+            "Centrocampista": 8,
+            "Attaccante": 6
+        }
+    else:
+        ROLES = {
+            "Por": 3, "Dc": 4, "Dd": 2, "Ds": 2, "M": 2, "C": 4,
+            "T": 2, "E": 2, "A": 2, "Pc": 2
+        }
     
     attempts = 0
-    max_attempts = 128  # Maggiore casualità e ottimizzazione
+    max_attempts = 100  # Maggiore casualità e ottimizzazione
     best_team = None
     best_cost = 0
     target_budget = 95  # Usa almeno il 95% del budget
@@ -75,28 +83,18 @@ def generate_team(database, strategy="Equilibrata"):
         
         for role, count in ROLES.items():
             players = sorted(
-                [p for p in database if str(p['Ruolo']).strip() == role and p['Quota_Percentuale'] > 0],
-                key=lambda x: (x['Quota_Percentuale'] * 0.33 + x['Partite_Voto'] * 0.33 + x['Fantamedia'] * 0.34),
+                [p for p in database if (role in str(p['Ruolo']).split(';') if mode == "Classic" else role in str(p['Ruolo_Mantra']).split(';')) and p['Quota_Percentuale'] > 0],
+                key=lambda x: (x['Quota_Percentuale'] * 0.4 + x['Partite_Voto'] * 0.3 + x['Fantamedia'] * 0.3),
                 reverse=True
             )
             
             if not players or len(players) < count:
                 break  # Se non ci sono abbastanza giocatori, si interrompe
             
-            selected = random.sample(players[:count * 3], count)  # Maggiore variazione nei giocatori
+            selected = random.sample(players[:count * 2], count)  # Assicura esattamente il numero giusto di giocatori
             
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
-        
-        # Aggiustamento finale per avvicinarsi al 100%
-        if total_cost_percentage < target_budget:
-            sorted_players = sorted(database, key=lambda x: x['Quota_Percentuale'], reverse=True)
-            for p in sorted_players:
-                if p not in selected_team and total_cost_percentage + p['Quota_Percentuale'] <= 100:
-                    selected_team.append(p)
-                    total_cost_percentage += p['Quota_Percentuale']
-                if total_cost_percentage >= target_budget:
-                    break
         
         if total_cost_percentage >= target_budget and total_cost_percentage <= 100 and len(selected_team) == 25:
             return selected_team, total_cost_percentage
@@ -120,6 +118,9 @@ st.markdown("""---
 ### Scegli il tuo metodo di acquisto
 """)
 
+# Selezione modalità di gioco
+mode = st.selectbox("⚙️ Seleziona la modalità di gioco", ["Classic", "Mantra"])
+
 # Selezione tipo di pagamento
 payment_type = st.radio("Tipo di generazione", ["One Shot (1 strategia)", "Complete (3 strategie)"])
 
@@ -138,7 +139,7 @@ if database is None:
 
 if st.button("🛠️ Genera Squadra"):
     for strategy in strategy_list:
-        team, total_cost_percentage = generate_team(database, strategy)
+        team, total_cost_percentage = generate_team(database, strategy, mode)
         if team and total_cost_percentage >= 95 and len(team) == 25:
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
             st.write("### Squadra generata:")
