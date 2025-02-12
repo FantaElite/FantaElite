@@ -3,6 +3,10 @@ import pandas as pd
 import os
 import random
 
+# Definizione budget min e max a livello globale
+TARGET_BUDGET_MIN = 95
+TARGET_BUDGET_MAX = 100
+
 # Carica il database Excel automaticamente
 @st.cache_data(ttl=0)
 def load_database():
@@ -72,8 +76,6 @@ def generate_team(database, strategy="Equilibrata", mode="Classic"):
     max_attempts = 100
     best_team = None
     best_cost = 0
-    target_budget_min = 95
-    target_budget_max = 100
     
     while attempts < max_attempts:
         selected_team = []
@@ -94,12 +96,12 @@ def generate_team(database, strategy="Equilibrata", mode="Classic"):
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
         
-        if target_budget_min <= total_cost_percentage <= target_budget_max and len(selected_team) == 25:
+        if TARGET_BUDGET_MIN <= total_cost_percentage <= TARGET_BUDGET_MAX and len(selected_team) == 25:
             return selected_team, total_cost_percentage
         
-        if total_cost_percentage > target_budget_max:
+        if total_cost_percentage > TARGET_BUDGET_MAX:
             selected_team = sorted(selected_team, key=lambda x: x['Quota_Percentuale'], reverse=True)
-            while total_cost_percentage > target_budget_max and selected_team:
+            while total_cost_percentage > TARGET_BUDGET_MAX and selected_team:
                 player_to_remove = selected_team.pop(0)
                 total_cost_percentage -= player_to_remove['Quota_Percentuale']
         
@@ -144,7 +146,7 @@ if database is None:
 if st.button("🛠️ Genera Squadra"):
     for strategy in strategy_list:
         team, total_cost_percentage = generate_team(database, strategy, mode)
-        if team and target_budget_min <= total_cost_percentage <= target_budget_max and len(team) == 25:
+        if team and TARGET_BUDGET_MIN <= total_cost_percentage <= TARGET_BUDGET_MAX and len(team) == 25:
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
             st.write("### Squadra generata:")
             st.write(pd.DataFrame(team))
