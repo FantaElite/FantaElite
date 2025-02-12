@@ -4,7 +4,7 @@ import os
 import random
 
 # Carica il database Excel automaticamente
-@st.cache_data
+@st.cache_data(ttl=0)
 def load_database():
     url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio_v2.csv"
     try:
@@ -21,7 +21,7 @@ def load_database():
             "Ruolo_Mantra": "Ruolo_Mantra",
             "Media_Voto": "Media_Voto",
             "Fantamedia": "Fantamedia",
-            "Quotazione": "Quota_Percentuale",
+            "Quota_Percentuale": "Quota_Percentuale",
             "Partite_Voto": "Partite_Voto"
         }
         
@@ -43,12 +43,9 @@ def load_database():
         # Riempie solo i valori NaN con la media delle quotazioni esistenti
         df["Quota_Percentuale"].fillna(df["Quota_Percentuale"].mean(), inplace=True)
         
-        # Assicura che la colonna "Ruolo" sia trattata come stringa senza NaN
+        # Assicura che la colonna "Ruolo" e "Ruolo_Mantra" siano trattate come stringa senza NaN
         df["Ruolo"] = df["Ruolo"].astype(str).str.strip().fillna("Sconosciuto")
         df["Ruolo_Mantra"] = df["Ruolo_Mantra"].astype(str).str.strip().fillna("Sconosciuto")
-        
-        # Convertiamo la quotazione in percentuale rispetto a un budget di 500 crediti
-        df["Quota_Percentuale"] = (df["Quota_Percentuale"] / 500.0) * 100  # Converte in percentuale
         
         return df.to_dict(orient='records')
     
