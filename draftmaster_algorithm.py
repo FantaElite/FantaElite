@@ -89,21 +89,15 @@ def generate_team(database, strategy="Equilibrata", mode="Classic"):
             if not players or len(players) < count:
                 break  # Se non ci sono abbastanza giocatori, si interrompe
             
-            selected = random.sample(players[:count * 2], count)
+            selected = random.sample(players[:count * 3], count)
             
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
         
-        if target_budget_min <= total_cost_percentage <= target_budget_max and len(selected_team) == 25:
+        if target_budget_min <= total_cost_percentage <= target_budget_max and len(selected_team) == sum(ROLES.values()):
             return selected_team, total_cost_percentage
         
-        if total_cost_percentage > target_budget_max:
-            selected_team = sorted(selected_team, key=lambda x: x['Quota_Percentuale'], reverse=True)
-            while total_cost_percentage > target_budget_max and selected_team:
-                player_to_remove = selected_team.pop(0)
-                total_cost_percentage -= player_to_remove['Quota_Percentuale']
-        
-        if total_cost_percentage > best_cost:
+        if total_cost_percentage > best_cost and len(selected_team) == sum(ROLES.values()):
             best_team = selected_team
             best_cost = total_cost_percentage
         
@@ -143,7 +137,7 @@ if database is None:
 if st.button("🛠️ Genera Squadra"):
     for strategy in strategy_list:
         team, total_cost_percentage = generate_team(database, strategy, mode)
-        if team and 95 <= total_cost_percentage <= 100 and len(team) == 25:
+        if team and target_budget_min <= total_cost_percentage <= target_budget_max and len(team) == sum(ROLES.values()):
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
             st.write("### Squadra generata:")
             st.write(pd.DataFrame(team))
