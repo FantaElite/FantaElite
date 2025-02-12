@@ -96,14 +96,25 @@ def generate_team(database, strategy="Equilibrata", mode="Classic"):
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
         
+        # Se la squadra è troppo costosa, riduci i costi rimpiazzando giocatori
+        while total_cost_percentage > TARGET_BUDGET_MAX and selected_team:
+            selected_team = sorted(selected_team, key=lambda x: x['Quota_Percentuale'], reverse=True)
+            player_to_remove = selected_team.pop(0)
+            total_cost_percentage -= player_to_remove['Quota_Percentuale']
+        
+        # Se la squadra è troppo economica, prova a migliorarla con giocatori più costosi
+        if total_cost_percentage < TARGET_BUDGET_MIN:
+            alternative_players = [p for p in database if p not in selected_team and p['Quota_Percentuale'] > 0]
+            alternative_players = sorted(alternative_players, key=lambda x: x['Quota_Percentuale'], reverse=True)
+            for i in range(len(selected_team)):
+                if total_cost_percentage >= TARGET_BUDGET_MIN:
+                    break
+                if alternative_players:
+                    selected_team[i] = alternative_players.pop(0)
+                    total_cost_percentage += selected_team[i]['Quota_Percentuale']
+        
         if TARGET_BUDGET_MIN <= total_cost_percentage <= TARGET_BUDGET_MAX and len(selected_team) == 25:
             return selected_team, total_cost_percentage
-        
-        if total_cost_percentage > TARGET_BUDGET_MAX:
-            selected_team = sorted(selected_team, key=lambda x: x['Quota_Percentuale'], reverse=True)
-            while total_cost_percentage > TARGET_BUDGET_MAX and selected_team:
-                player_to_remove = selected_team.pop(0)
-                total_cost_percentage -= player_to_remove['Quota_Percentuale']
         
         if total_cost_percentage > best_cost:
             best_team = selected_team
@@ -148,9 +159,8 @@ if st.button("🛠️ Genera Squadra"):
         team, total_cost_percentage = generate_team(database, strategy, mode)
         if team and TARGET_BUDGET_MIN <= total_cost_percentage <= TARGET_BUDGET_MAX and len(team) == 25:
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
-            st.write("### Squadra generata:")
             st.write(pd.DataFrame(team))
             csv_data = export_to_csv(team)
             st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
         else:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo alto o troppo basso per formare una rosa completa.")
+            st.error(f"❌ Errore nella generazione della squadra ({strategy}).")
