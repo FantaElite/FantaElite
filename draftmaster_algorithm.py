@@ -53,8 +53,10 @@ def load_database():
         st.error(f"Errore nel caricamento del database: {e}")
         return None
 
-
 def generate_team(database, strategy="Equilibrata", mode="Classic"):
+    target_budget_min = 95
+    target_budget_max = 100
+    
     if mode == "Classic":
         ROLES = {
             "Portiere": 3,
@@ -72,8 +74,6 @@ def generate_team(database, strategy="Equilibrata", mode="Classic"):
     max_attempts = 100
     best_team = None
     best_cost = 0
-    target_budget_min = 95
-    target_budget_max = 100
     
     while attempts < max_attempts:
         selected_team = []
@@ -111,7 +111,6 @@ def generate_team(database, strategy="Equilibrata", mode="Classic"):
     
     return best_team, best_cost
 
-
 def export_to_csv(team):
     df = pd.DataFrame(team)
     return df.to_csv(index=False, sep=';', decimal=',', encoding='utf-8').encode('utf-8')
@@ -144,7 +143,7 @@ if database is None:
 if st.button("🛠️ Genera Squadra"):
     for strategy in strategy_list:
         team, total_cost_percentage = generate_team(database, strategy, mode)
-        if team and target_budget_min <= total_cost_percentage <= target_budget_max and len(team) == 25:
+        if team and 95 <= total_cost_percentage <= 100 and len(team) == 25:
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
             st.write("### Squadra generata:")
             st.write(pd.DataFrame(team))
