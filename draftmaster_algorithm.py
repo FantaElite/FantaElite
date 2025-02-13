@@ -155,7 +155,7 @@ if database is None:
 if st.button("🛠️ Genera Squadra"):
     for strategy in strategy_list:
         team, total_cost_percentage = generate_team(database, strategy, attempts_limit=50)
-        if team and target_budget_min <= total_cost_percentage <= target_budget_max and len(team) == sum(ROLES.values()):
+        if team and len(team) == sum(ROLES.values()):
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
             st.write("### Squadra generata:")
             st.write(pd.DataFrame(team))
