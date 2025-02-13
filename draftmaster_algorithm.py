@@ -89,15 +89,17 @@ def generate_team(database, strategy="Equilibrata", attempts_limit=50):
         total_cost_percentage = 0
         role_costs = {}
 
-        # Genera i budget casuali per ogni ruolo e li normalizza a 100%
-        for role, (min_budget, max_budget) in budget_ranges.items():
-            role_costs[role] = random.uniform(min_budget, max_budget)
+        # Genera un budget casuale per ogni ruolo rispettando il range
+        role_costs["Portiere"] = random.uniform(*budget_ranges["Portiere"])
+        role_costs["Difensore"] = random.uniform(*budget_ranges["Difensore"])
+        role_costs["Centrocampista"] = random.uniform(*budget_ranges["Centrocampista"])
+        role_costs["Attaccante"] = random.uniform(*budget_ranges["Attaccante"])
 
+        # Regoliamo gli attaccanti per rimanere entro il 100%
         total_assigned_budget = sum(role_costs.values())
-
-        # Normalizza per assicurare che la somma sia esattamente 100%
-        for role in role_costs:
-            role_costs[role] = (role_costs[role] / total_assigned_budget) * 100
+        if total_assigned_budget != 100:
+            adjustment = 100 - total_assigned_budget
+            role_costs["Attaccante"] += adjustment  # Regoliamo sugli attaccanti perché hanno il budget più alto
 
         for role, count in ROLES.items():
             players = sorted(
