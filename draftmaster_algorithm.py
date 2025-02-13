@@ -4,7 +4,7 @@ import os
 import random
 
 # Carica il database Excel automaticamente
-@st.cache_data
+@st.cache_data(ttl=0)
 def load_database():
     url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio_v2.csv"
     try:
@@ -45,9 +45,6 @@ def load_database():
         # Assicura che la colonna "Ruolo" sia trattata come stringa senza NaN
         df["Ruolo"] = df["Ruolo"].astype(str).str.strip().fillna("Sconosciuto")
         
-        # Convertiamo la quotazione in percentuale rispetto a un budget di 500 crediti
-        df["Quota_Percentuale"] = (df["Quota_Percentuale"] / 500.0) * 100  # Converte in percentuale
-        
         return df.to_dict(orient='records')
     
     except Exception as e:
@@ -55,7 +52,10 @@ def load_database():
         return None
 
 
-def generate_team(database, strategy="Equilibrata"):
+def generate_team(database, strategy="Equilibrata", attempts_limit=50):
+    target_budget_min = 95
+    target_budget_max = 100
+    
     ROLES = {
         "Portiere": 3,
         "Difensore": 8,
@@ -64,44 +64,32 @@ def generate_team(database, strategy="Equilibrata"):
     }
     
     attempts = 0
-    max_attempts = 128  # Maggiore casualità e ottimizzazione
     best_team = None
     best_cost = 0
-    target_budget = 95  # Usa almeno il 95% del budget
     
-    while attempts < max_attempts:
+    while attempts < attempts_limit:
         selected_team = []
         total_cost_percentage = 0
         
         for role, count in ROLES.items():
             players = sorted(
-                [p for p in database if str(p['Ruolo']).strip() == role and p['Quota_Percentuale'] > 0],
-                key=lambda x: (x['Quota_Percentuale'] * 0.33 + x['Partite_Voto'] * 0.33 + x['Fantamedia'] * 0.34),
+                [p for p in database if role in str(p['Ruolo']).split(';') and p['Quota_Percentuale'] > 0],
+                key=lambda x: (x['Quota_Percentuale'] * 0.4 + x['Partite_Voto'] * 0.3 + x['Fantamedia'] * 0.3),
                 reverse=True
             )
             
             if not players or len(players) < count:
                 break  # Se non ci sono abbastanza giocatori, si interrompe
             
-            selected = random.sample(players[:count * 3], count)  # Maggiore variazione nei giocatori
+            selected = random.sample(players[:count * 3], count)
             
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
         
-        # Aggiustamento finale per avvicinarsi al 100%
-        if total_cost_percentage < target_budget:
-            sorted_players = sorted(database, key=lambda x: x['Quota_Percentuale'], reverse=True)
-            for p in sorted_players:
-                if p not in selected_team and total_cost_percentage + p['Quota_Percentuale'] <= 100:
-                    selected_team.append(p)
-                    total_cost_percentage += p['Quota_Percentuale']
-                if total_cost_percentage >= target_budget:
-                    break
-        
-        if total_cost_percentage >= target_budget and total_cost_percentage <= 100 and len(selected_team) == 25:
+        if target_budget_min <= total_cost_percentage <= target_budget_max and len(selected_team) == sum(ROLES.values()):
             return selected_team, total_cost_percentage
         
-        if total_cost_percentage > best_cost:
+        if total_cost_percentage > best_cost and len(selected_team) == sum(ROLES.values()):
             best_team = selected_team
             best_cost = total_cost_percentage
         
@@ -138,12 +126,12 @@ if database is None:
 
 if st.button("🛠️ Genera Squadra"):
     for strategy in strategy_list:
-        team, total_cost_percentage = generate_team(database, strategy)
-        if team and total_cost_percentage >= 95 and len(team) == 25:
+        team, total_cost_percentage = generate_team(database, strategy, attempts_limit=50)
+        if team and target_budget_min <= total_cost_percentage <= target_budget_max and len(team) == sum(ROLES.values()):
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
             st.write("### Squadra generata:")
             st.write(pd.DataFrame(team))
             csv_data = export_to_csv(team)
             st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
         else:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo basso per formare una rosa completa.")
+            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo alto o troppo basso per formare una rosa completa.")
