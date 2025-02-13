@@ -90,16 +90,12 @@ def generate_team(database, strategy="Equilibrata", attempts_limit=50):
         role_costs = {}
 
         # Genera un budget casuale per ogni ruolo rispettando il range
-        role_costs["Portiere"] = random.uniform(*budget_ranges["Portiere"])
-        role_costs["Difensore"] = random.uniform(*budget_ranges["Difensore"])
-        role_costs["Centrocampista"] = random.uniform(*budget_ranges["Centrocampista"])
-        role_costs["Attaccante"] = random.uniform(*budget_ranges["Attaccante"])
+        assigned_budget = {role: random.uniform(*budget_ranges[role]) for role in ROLES}
 
-        # Regoliamo gli attaccanti per rimanere entro il 100%
-        total_assigned_budget = sum(role_costs.values())
-        if total_assigned_budget != 100:
-            adjustment = 100 - total_assigned_budget
-            role_costs["Attaccante"] += adjustment  # Regoliamo sugli attaccanti perché hanno il budget più alto
+        # Normalizza il budget per fare in modo che la somma sia esattamente 100%
+        total_budget_assigned = sum(assigned_budget.values())
+        for role in assigned_budget:
+            assigned_budget[role] = (assigned_budget[role] / total_budget_assigned) * 100
 
         for role, count in ROLES.items():
             players = sorted(
@@ -115,6 +111,12 @@ def generate_team(database, strategy="Equilibrata", attempts_limit=50):
 
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
+
+        # Se il budget supera il 100%, rimuoviamo il giocatore meno costoso fino a rientrare nel range
+        while total_cost_percentage > target_budget_max and selected_team:
+            selected_team = sorted(selected_team, key=lambda x: x['Quota_Percentuale'], reverse=True)
+            removed_player = selected_team.pop()
+            total_cost_percentage -= removed_player['Quota_Percentuale']
 
         if target_budget_min <= total_cost_percentage <= target_budget_max and len(selected_team) == sum(ROLES.values()):
             return selected_team, total_cost_percentage
