@@ -25,13 +25,6 @@ def load_database():
 
         df.rename(columns=column_mapping, inplace=True)
 
-        # Controllo colonne mancanti
-        expected_columns = list(column_mapping.values())
-        missing_columns = [col for col in expected_columns if col not in df.columns]
-        if missing_columns:
-            st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV.")
-            return None
-
         # Converti le colonne numeriche correggendo eventuali errori
         numeric_columns = ["Quota_Percentuale", "Fantamedia", "Media_Voto", "Partite_Voto"]
 
@@ -93,10 +86,13 @@ def generate_team(database, strategy="Equilibrata", attempts_limit=50):
         for role in ROLES:
             assigned_budget[role] = random.uniform(*budget_ranges[role])
 
-        # Normalizza il budget per fare in modo che la somma sia esattamente 100%
+        # Normalizziamo il budget per fare in modo che la somma sia **esattamente 100%**
         total_budget_assigned = sum(assigned_budget.values())
         for role in assigned_budget:
             assigned_budget[role] = (assigned_budget[role] / total_budget_assigned) * 100
+
+        # **DEBUG: Stampiamo il budget assegnato per ogni ruolo**
+        print(f"🔎 Tentativo {attempts+1}: Budget per ruolo -> {assigned_budget}")
 
         # Selezione giocatori per ogni ruolo
         for role, count in ROLES.items():
@@ -107,19 +103,21 @@ def generate_team(database, strategy="Equilibrata", attempts_limit=50):
             )
 
             if not players or len(players) < count:
-                continue  # Se non ci sono abbastanza giocatori, salta e riprova
+                continue  # Se non ci sono abbastanza giocatori, riprova
 
+            # Seleziona casualmente i giocatori, ma evita il sovraccarico di giocatori costosi
             selected = random.sample(players[:max(count * 3, len(players))], count)
+
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
 
-        # Se il budget supera il 100%, rimuoviamo il giocatore meno costoso fino a rientrare nel range
+        # **Se il budget supera il 100%, rimuoviamo il giocatore meno costoso fino a rientrare nel range**
         while total_cost_percentage > target_budget_max and selected_team:
             selected_team = sorted(selected_team, key=lambda x: x['Quota_Percentuale'], reverse=True)
             removed_player = selected_team.pop()
             total_cost_percentage -= removed_player['Quota_Percentuale']
 
-        # **DEBUG: Mostrare info sul budget**
+        # **DEBUG: Mostrare info sul budget usato e giocatori selezionati**
         print(f"🔎 Tentativo {attempts+1}: Budget Usato = {total_cost_percentage:.2f}%, Giocatori selezionati = {len(selected_team)}")
 
         if target_budget_min <= total_cost_percentage <= target_budget_max and len(selected_team) == sum(ROLES.values()):
@@ -161,13 +159,3 @@ if database is None:
     st.stop()
 
 if st.button("🛠️ Genera Squadra"):
-    for strategy in strategy_list:
-        team, total_cost_percentage = generate_team(database, strategy, attempts_limit=50)
-        if team and len(team) == sum(ROLES.values()):
-            st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
-            st.write("### Squadra generata:")
-            st.write(pd.DataFrame(team))
-            csv_data = export_to_csv(team)
-            st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
-        else:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo alto o troppo basso per formare una rosa completa.")
