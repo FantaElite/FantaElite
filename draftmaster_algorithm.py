@@ -10,10 +10,8 @@ def load_database():
     try:
         df = pd.read_csv(url, encoding="utf-8", delimiter=';')
         
-        # Rimuove eventuali spazi prima e dopo i nomi delle colonne
         df.columns = df.columns.str.strip()
         
-        # Mappa i nuovi nomi delle colonne corretti
         column_mapping = {
             "Nome": "Nome",
             "Squadra": "Squadra",
@@ -26,23 +24,19 @@ def load_database():
         
         df.rename(columns=column_mapping, inplace=True)
         
-        # Controllo colonne mancanti
         expected_columns = list(column_mapping.values())
         missing_columns = [col for col in expected_columns if col not in df.columns]
         if missing_columns:
             st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Ecco le colonne trovate: {df.columns.tolist()}")
             return None
 
-        # Converti le colonne numeriche correggendo eventuali errori
         numeric_columns = ["Quota_Percentuale", "Fantamedia", "Media_Voto", "Partite_Voto"]
         
         for col in numeric_columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")  # Converte i valori non numerici in NaN
+            df[col] = pd.to_numeric(df[col], errors="coerce")
         
-        # Riempie solo i valori NaN con la media delle quotazioni esistenti
         df["Quota_Percentuale"].fillna(df["Quota_Percentuale"].mean(), inplace=True)
         
-        # Assicura che la colonna "Ruolo" sia trattata come stringa senza NaN
         df["Ruolo"] = df["Ruolo"].astype(str).str.strip().fillna("Sconosciuto")
         
         return df.to_dict(orient='records')
@@ -51,7 +45,6 @@ def load_database():
         st.error(f"Errore nel caricamento del database: {e}")
         return None
 
-# Ruoli e numero di giocatori per ciascun ruolo
 ROLES = {
     "Portiere": 3,
     "Difensore": 8,
@@ -59,7 +52,6 @@ ROLES = {
     "Attaccante": 6
 }
 
-# Percentuali di budget per ogni strategia
 BUDGET_ALLOCATION = {
     "Equilibrata": {
         "Portiere": (6, 8),
@@ -80,18 +72,11 @@ def generate_team(database, strategy="Equilibrata", attempts_limit=50):
     target_budget_max = 100
     
     budget_ranges = BUDGET_ALLOCATION[strategy]
-    assigned_budget = {}
+    assigned_budget = {role: random.uniform(*budget_ranges[role]) for role in ROLES}
     
-    # Genera un budget casuale per ogni ruolo rispettando il range
-    for role in ROLES:
-        assigned_budget[role] = random.uniform(*budget_ranges[role])
-    
-    # Normalizziamo il budget per fare in modo che la somma sia **esattamente 100%**
     total_budget_assigned = sum(assigned_budget.values())
     scale_factor = 100 / total_budget_assigned
-    
-    for role in assigned_budget:
-        assigned_budget[role] *= scale_factor
+    assigned_budget = {role: assigned_budget[role] * scale_factor for role in assigned_budget}
     
     attempts = 0
     best_team = None
@@ -109,7 +94,7 @@ def generate_team(database, strategy="Equilibrata", attempts_limit=50):
             )
             
             if not players or len(players) < count:
-                continue  # Se non ci sono abbastanza giocatori, prova con meno restrizioni
+                continue
             
             selected = random.sample(players[:max(count * 3, len(players))], count)
             
@@ -118,6 +103,15 @@ def generate_team(database, strategy="Equilibrata", attempts_limit=50):
         
         if target_budget_min <= total_cost_percentage <= target_budget_max and len(selected_team) == sum(ROLES.values()):
             return selected_team, total_cost_percentage
+        
+        if total_cost_percentage > 100 and len(selected_team) == sum(ROLES.values()):
+            selected_team = sorted(selected_team, key=lambda x: x['Quota_Percentuale'], reverse=True)
+            while total_cost_percentage > 100 and selected_team:
+                removed_player = selected_team.pop(0)
+                total_cost_percentage -= removed_player['Quota_Percentuale']
+            
+            if target_budget_min <= total_cost_percentage <= target_budget_max:
+                return selected_team, total_cost_percentage
         
         if total_cost_percentage > best_cost and len(selected_team) == sum(ROLES.values()):
             best_team = selected_team
@@ -131,16 +125,13 @@ def export_to_csv(team):
     df = pd.DataFrame(team)
     return df.to_csv(index=False, sep=';', decimal=',', encoding='utf-8').encode('utf-8')
 
-# Web App con Streamlit
 st.title("⚽ FantaElite - Generatore di Rose Fantacalcio ⚽")
 st.markdown("""---
 ### Scegli il tuo metodo di acquisto
 """)
 
-# Selezione tipo di pagamento
 payment_type = st.radio("Tipo di generazione", ["One Shot (1 strategia)", "Complete (2 strategie)"])
 
-# Selezione strategia di generazione
 strategies = ["Equilibrata", "Modificatore di Difesa"]
 
 if payment_type == "One Shot (1 strategia)":
