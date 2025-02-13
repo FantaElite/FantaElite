@@ -159,3 +159,13 @@ if database is None:
     st.stop()
 
 if st.button("🛠️ Genera Squadra"):
+    for strategy in strategy_list:
+        team, total_cost_percentage = generate_team(database, strategy, attempts_limit=50)
+        if team and len(team) == sum(ROLES.values()):
+            st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
+            st.write("### Squadra generata:")
+            st.write(pd.DataFrame(team))
+            csv_data = export_to_csv(team)
+            st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
+        else:
+            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo alto o troppo basso per formare una rosa completa.")
