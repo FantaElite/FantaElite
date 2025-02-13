@@ -51,7 +51,6 @@ def load_database():
         st.error(f"Errore nel caricamento del database: {e}")
         return None
 
-
 # Percentuali di budget per ogni strategia
 BUDGET_ALLOCATION = {
     "Equilibrata": {
@@ -88,11 +87,19 @@ def generate_team(database, strategy="Equilibrata", attempts_limit=50):
     while attempts < attempts_limit:
         selected_team = []
         total_cost_percentage = 0
+        role_costs = {}
         
         for role, count in ROLES.items():
             role_budget_min, role_budget_max = budget_ranges[role]
             role_budget = random.uniform(role_budget_min, role_budget_max)
+            role_costs[role] = role_budget
             
+        # Normalizza le percentuali per assicurare che la somma sia 100%
+        total_assigned_budget = sum(role_costs.values())
+        for role in role_costs:
+            role_costs[role] = (role_costs[role] / total_assigned_budget) * 100
+            
+        for role, count in ROLES.items():
             players = sorted(
                 [p for p in database if role in str(p['Ruolo']).split(';') and p['Quota_Percentuale'] > 0],
                 key=lambda x: (x['Quota_Percentuale'] * 0.4 + x['Partite_Voto'] * 0.3 + x['Fantamedia'] * 0.3),
@@ -144,9 +151,6 @@ else:
 database = load_database()
 if database is None:
     st.stop()
-
-target_budget_min = 95
-target_budget_max = 100
 
 if st.button("🛠️ Genera Squadra"):
     for strategy in strategy_list:
