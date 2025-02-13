@@ -91,9 +91,6 @@ def generate_team(database, strategy="Equilibrata", attempts_limit=50):
         for role in assigned_budget:
             assigned_budget[role] = (assigned_budget[role] / total_budget_assigned) * 100
 
-        # **DEBUG: Stampiamo il budget assegnato per ogni ruolo**
-        print(f"🔎 Tentativo {attempts+1}: Budget per ruolo -> {assigned_budget}")
-
         # Selezione giocatori per ogni ruolo
         for role, count in ROLES.items():
             players = sorted(
@@ -111,14 +108,21 @@ def generate_team(database, strategy="Equilibrata", attempts_limit=50):
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
 
-        # **Se il budget supera il 100%, rimuoviamo il giocatore meno costoso fino a rientrare nel range**
+        # Se il budget supera il 100%, rimuoviamo il giocatore meno costoso fino a rientrare nel range
         while total_cost_percentage > target_budget_max and selected_team:
             selected_team = sorted(selected_team, key=lambda x: x['Quota_Percentuale'], reverse=True)
             removed_player = selected_team.pop()
             total_cost_percentage -= removed_player['Quota_Percentuale']
 
-        # **DEBUG: Mostrare info sul budget usato e giocatori selezionati**
-        print(f"🔎 Tentativo {attempts+1}: Budget Usato = {total_cost_percentage:.2f}%, Giocatori selezionati = {len(selected_team)}")
+        # Fallback per aggiungere giocatori economici se il budget è troppo basso
+        if total_cost_percentage < target_budget_min:
+            cheap_players = sorted(database, key=lambda x: x['Quota_Percentuale'])
+            for p in cheap_players:
+                if p not in selected_team and total_cost_percentage + p['Quota_Percentuale'] <= target_budget_max:
+                    selected_team.append(p)
+                    total_cost_percentage += p['Quota_Percentuale']
+                if total_cost_percentage >= target_budget_min:
+                    break
 
         if target_budget_min <= total_cost_percentage <= target_budget_max and len(selected_team) == sum(ROLES.values()):
             return selected_team, total_cost_percentage
