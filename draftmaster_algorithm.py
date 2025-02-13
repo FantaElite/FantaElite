@@ -51,6 +51,14 @@ def load_database():
         st.error(f"Errore nel caricamento del database: {e}")
         return None
 
+# Ruoli e numero di giocatori per ciascun ruolo
+ROLES = {
+    "Portiere": 3,
+    "Difensore": 8,
+    "Centrocampista": 8,
+    "Attaccante": 6
+}
+
 # Percentuali di budget per ogni strategia
 BUDGET_ALLOCATION = {
     "Equilibrata": {
@@ -70,13 +78,6 @@ BUDGET_ALLOCATION = {
 def generate_team(database, strategy="Equilibrata", attempts_limit=50):
     target_budget_min = 95
     target_budget_max = 100
-    
-    ROLES = {
-        "Portiere": 3,
-        "Difensore": 8,
-        "Centrocampista": 8,
-        "Attaccante": 6
-    }
     
     budget_ranges = BUDGET_ALLOCATION[strategy]
     assigned_budget = {}
