@@ -64,7 +64,7 @@ def generate_team(database, strategy="Equilibrata"):
     }
     
     attempts = 0
-    max_attempts = 128  # Maggiore casualità e ottimizzazione
+    max_attempts = 50  # Maggiore casualità e ottimizzazione
     best_team = None
     best_cost = 0
     target_budget = 95  # Usa almeno il 95% del budget
@@ -115,13 +115,13 @@ def export_to_csv(team):
     return df.to_csv(index=False, sep=';', decimal=',', encoding='utf-8').encode('utf-8')
 
 # Web App con Streamlit
-st.title("⚽ FantaElite - Generatore di Rose Fantacalcio ⚽")
+st.title("⚽ FantaElite - Team Gen ⚽")
 st.markdown("""---
 ### Scegli il tuo metodo di acquisto
 """)
 
 # Selezione tipo di pagamento
-payment_type = st.radio("Tipo di generazione", ["One Shot (1 strategia)", "Complete (3 strategie)"])
+payment_type = st.radio("Tipo di generazione", ["One Shot (1 strategia)", "Complete (2 strategie)"])
 
 # Selezione strategia di generazione
 strategies = ["Equilibrata", "Modificatore di Difesa"]
@@ -136,7 +136,7 @@ database = load_database()
 if database is None:
     st.stop()
 
-if st.button("🛠️ Genera Squadra"):
+if st.button("🛠️ Genera La Tua Squadra"):
     for strategy in strategy_list:
         team, total_cost_percentage = generate_team(database, strategy)
         if team and total_cost_percentage >= 95 and len(team) == 25:
