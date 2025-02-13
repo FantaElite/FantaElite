@@ -88,8 +88,10 @@ def generate_team(database, strategy="Equilibrata", attempts_limit=50):
     
     # Normalizziamo il budget per fare in modo che la somma sia **esattamente 100%**
     total_budget_assigned = sum(assigned_budget.values())
+    scale_factor = 100 / total_budget_assigned
+    
     for role in assigned_budget:
-        assigned_budget[role] = (assigned_budget[role] / total_budget_assigned) * 100
+        assigned_budget[role] *= scale_factor
     
     attempts = 0
     best_team = None
