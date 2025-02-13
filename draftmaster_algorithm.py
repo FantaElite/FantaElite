@@ -91,6 +91,8 @@ def generate_team(database, strategy="Equilibrata", attempts_limit=50):
         for role in assigned_budget:
             assigned_budget[role] = (assigned_budget[role] / total_budget_assigned) * 100
 
+        st.write(f"🔍 Budget assegnato per ruoli ({strategy}): {assigned_budget}")
+
         # Selezione giocatori per ogni ruolo
         for role, count in ROLES.items():
             players = sorted(
@@ -100,6 +102,7 @@ def generate_team(database, strategy="Equilibrata", attempts_limit=50):
             )
 
             if not players or len(players) < count:
+                st.write(f"⚠️ Non abbastanza giocatori per il ruolo {role}. Trovati: {len(players)} / Necessari: {count}")
                 continue  # Se non ci sono abbastanza giocatori, riprova
 
             # Seleziona casualmente i giocatori, ma evita il sovraccarico di giocatori costosi
@@ -108,11 +111,15 @@ def generate_team(database, strategy="Equilibrata", attempts_limit=50):
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
 
+        st.write(f"🔍 Budget usato ({strategy}): {total_cost_percentage:.2f}%")
+        st.write(f"📋 Giocatori selezionati: {len(selected_team)}")
+
         # Se il budget supera il 100%, rimuoviamo il giocatore meno costoso fino a rientrare nel range
         while total_cost_percentage > target_budget_max and selected_team:
             selected_team = sorted(selected_team, key=lambda x: x['Quota_Percentuale'], reverse=True)
             removed_player = selected_team.pop()
             total_cost_percentage -= removed_player['Quota_Percentuale']
+            st.write(f"💰 Rimosso {removed_player['Nome']} per ridurre budget: {total_cost_percentage:.2f}%")
 
         # Fallback per aggiungere giocatori economici se il budget è troppo basso
         if total_cost_percentage < target_budget_min:
