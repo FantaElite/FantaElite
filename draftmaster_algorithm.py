@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import os
 import random
 
 # Carica il database Excel automaticamente
@@ -9,10 +8,10 @@ def load_database():
     url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio_v2.csv"
     try:
         df = pd.read_csv(url, encoding="utf-8", delimiter=';')
-        
+
         # Rimuove eventuali spazi prima e dopo i nomi delle colonne
         df.columns = df.columns.str.strip()
-        
+
         # Mappa i nuovi nomi delle colonne corretti
         column_mapping = {
             "Nome": "Nome",
@@ -23,30 +22,30 @@ def load_database():
             "Quotazione": "Quota_Percentuale",
             "Partite_Voto": "Partite_Voto"
         }
-        
+
         df.rename(columns=column_mapping, inplace=True)
-        
+
         # Controllo colonne mancanti
         expected_columns = list(column_mapping.values())
         missing_columns = [col for col in expected_columns if col not in df.columns]
         if missing_columns:
-            st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Ecco le colonne trovate: {df.columns.tolist()}")
+            st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV.")
             return None
 
         # Converti le colonne numeriche correggendo eventuali errori
         numeric_columns = ["Quota_Percentuale", "Fantamedia", "Media_Voto", "Partite_Voto"]
-        
+
         for col in numeric_columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")  # Converte i valori non numerici in NaN
-        
+
         # Riempie solo i valori NaN con la media delle quotazioni esistenti
         df["Quota_Percentuale"].fillna(df["Quota_Percentuale"].mean(), inplace=True)
-        
+
         # Assicura che la colonna "Ruolo" sia trattata come stringa senza NaN
         df["Ruolo"] = df["Ruolo"].astype(str).str.strip().fillna("Sconosciuto")
-        
+
         return df.to_dict(orient='records')
-    
+
     except Exception as e:
         st.error(f"Errore nel caricamento del database: {e}")
         return None
@@ -67,62 +66,63 @@ BUDGET_ALLOCATION = {
     }
 }
 
+# Definizione ruoli
+ROLES = {
+    "Portiere": 3,
+    "Difensore": 8,
+    "Centrocampista": 8,
+    "Attaccante": 6
+}
+
 def generate_team(database, strategy="Equilibrata", attempts_limit=50):
     target_budget_min = 95
     target_budget_max = 100
-    
-    ROLES = {
-        "Portiere": 3,
-        "Difensore": 8,
-        "Centrocampista": 8,
-        "Attaccante": 6
-    }
-    
+
     budget_ranges = BUDGET_ALLOCATION[strategy]
-    
+
     attempts = 0
     best_team = None
     best_cost = 0
-    
+
     while attempts < attempts_limit:
         selected_team = []
         total_cost_percentage = 0
         role_costs = {}
-        
-        for role, count in ROLES.items():
-            role_budget_min, role_budget_max = budget_ranges[role]
-            role_budget = random.uniform(role_budget_min, role_budget_max)
-            role_costs[role] = role_budget
-            
-        # Normalizza le percentuali per assicurare che la somma sia 100%
+
+        # Genera i budget casuali per ogni ruolo e li normalizza a 100%
+        for role, (min_budget, max_budget) in budget_ranges.items():
+            role_costs[role] = random.uniform(min_budget, max_budget)
+
         total_assigned_budget = sum(role_costs.values())
+
+        # Normalizza per assicurare che la somma sia esattamente 100%
         for role in role_costs:
             role_costs[role] = (role_costs[role] / total_assigned_budget) * 100
-            
+
         for role, count in ROLES.items():
             players = sorted(
                 [p for p in database if role in str(p['Ruolo']).split(';') and p['Quota_Percentuale'] > 0],
                 key=lambda x: (x['Quota_Percentuale'] * 0.4 + x['Partite_Voto'] * 0.3 + x['Fantamedia'] * 0.3),
                 reverse=True
             )
-            
+
             if not players or len(players) < count:
                 continue  # Se non ci sono abbastanza giocatori, prova con meno restrizioni
-            
+
             selected = random.sample(players[:max(count * 3, len(players))], count)
-            
+
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
-        
+
         if target_budget_min <= total_cost_percentage <= target_budget_max and len(selected_team) == sum(ROLES.values()):
             return selected_team, total_cost_percentage
-        
+
         if total_cost_percentage > best_cost and len(selected_team) == sum(ROLES.values()):
             best_team = selected_team
             best_cost = total_cost_percentage
-        
+
         attempts += 1
-    
+
     return best_team, best_cost
 
 
