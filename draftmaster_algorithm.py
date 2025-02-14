@@ -173,5 +173,4 @@ if st.button("️ Genera La Tua Squadra"):
             st.write(pd.DataFrame(team))
             csv_data = export_to_csv(team)
             st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
-        elif team is not None and len(team) < 25:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Non è stato
+        elif team is not None and len(team) < 25
