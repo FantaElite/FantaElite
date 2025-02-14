@@ -178,7 +178,4 @@ if st.button("️ Genera La Tua Squadra"):
                 file_name=f"squadra_{strategy}.csv",
                 mime="text/csv"
             )
-       elif team is not None and len(team) < 25:  # Corrected: Complete elif condition
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Non è stato possibile completare tutti i ruoli.")
-        else:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo basso per formare una rosa completa.")
+     
