@@ -174,8 +174,3 @@ if st.button("️ Genera La Tua Squadra"):
             csv_data = export_to_csv(team)
             st.download_button(
                 label=f"⬇️ Scarica Squadra ({strategy})",
-                data=csv_data,
-                file_name=f"squadra_{strategy}.csv",
-                mime="text/csv"
-            )
-     
