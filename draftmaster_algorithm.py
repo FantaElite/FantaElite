@@ -172,4 +172,6 @@ if st.button("️ Genera La Tua Squadra"):
             st.write("### Squadra generata:")
             st.write(pd.DataFrame(team))
             csv_data = export_to_csv(team)
-            st.download_button(f"⬇️ Scarica Squadra ({strategy})",)
+            st.download_button(
+                label=f"⬇️ Scarica Squadra ({strategy})",
+                data=csv_data,
