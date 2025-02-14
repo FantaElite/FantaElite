@@ -175,7 +175,3 @@ if st.button("️ Genera La Tua Squadra"):
             st.download_button(
                 label=f"⬇️ Scarica Squadra ({strategy})",
                 data=csv_data,
-                file_name=f"squadra_{strategy}.csv",
-                mime="text/csv"
-            )
-        elif team is
