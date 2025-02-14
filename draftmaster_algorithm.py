@@ -174,3 +174,11 @@ if st.button("️ Genera La Tua Squadra"):
             csv_data = export_to_csv(team)
             st.download_button(
                 label=f"⬇️ Scarica Squadra ({strategy})",
+                data=csv_data,
+                file_name=f"squadra_{strategy}.csv",
+                mime="text/csv"
+            )
+        elif team is not None and len(team) < 25:  # Riga elif COMPLETA e corretta
+            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Non è stato possibile completare tutti i ruoli.")
+        else:
+            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo basso per formare una rosa completa.")
