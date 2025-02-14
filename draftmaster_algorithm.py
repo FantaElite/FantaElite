@@ -171,4 +171,4 @@ if st.button("️ Genera La Tua Squadra"):
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
             st.write("### Squadra generata:")
             st.write(pd.DataFrame(team))
-            csv_data = export_to_csv(team
+            csv_data = export_to_csv(team)
