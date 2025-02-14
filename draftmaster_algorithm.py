@@ -55,7 +55,7 @@ def load_database():
 
 
 def export_to_csv(team):
-    df = pd.DataFrame(team)
+    df = pd.DataFrame(team).reset_index(drop=True)  # Correzione: reset_index() aggiunto
     return df.to_csv(index=False, sep=';', decimal=',', encoding='utf-8').encode('utf-8')
 
 
@@ -172,3 +172,4 @@ if st.button("️ Genera La Tua Squadra"):
             st.write("### Squadra generata:")
             st.write(pd.DataFrame(team))
             csv_data = export_to_csv(team)
+            st.download_button(f"⬇️ Scarica Squadra ({strategy})",
