@@ -99,7 +99,8 @@ def generate_team(database, strategy="Equilibrata"):
 
         for role, count in ROLES.items():
             min_percentage, max_percentage = budget_percentages[role]
-            role_budget = random.uniform(min_percentage, max_percentage) * 100  # Budgeto per ruolo
+            role_budget_percentage = random.uniform(min_percentage, max_percentage)
+            role_budget = role_budget_percentage * 100  # Budgeto per ruolo in percentuale
 
             players = sorted(
                 [p for p in database if str(p['Ruolo']).strip() == role and p['Quota_Percentuale'] > 0],
@@ -110,8 +111,12 @@ def generate_team(database, strategy="Equilibrata"):
             if not players or len(players) < count:
                 break
 
-            sample_size = min(len(players), count * 3)
-            selected = random.sample(players[:sample_size], count)
+            available_players = [p for p in players if p['Quota_Percentuale'] <= role_budget]
+            if len(available_players) < count:
+                break  # Non ci sono abbastanza giocatori disponibili con quel budget
+
+            sample_size = min(len(available_players), count * 3)  # Limita il sample ai giocatori disponibili
+            selected = random.sample(available_players[:sample_size], count)
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
 
@@ -169,6 +174,4 @@ if st.button("️ Genera La Tua Squadra"):
             csv_data = export_to_csv(team)
             st.download_button(f"⬇️ Scarica Squadra ({strategy})", csv_data, file_name=f"squadra_{strategy}.csv", mime="text/csv")
         elif team is not None and len(team) < 25:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Non è stato possibile completare tutti i ruoli.")
-        else:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo basso per formare una rosa completa.")
+            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Non è stato
