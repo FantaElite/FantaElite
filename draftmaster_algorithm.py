@@ -2,17 +2,14 @@ import streamlit as st
 import pandas as pd
 import random
 
-# Funzioni di caricamento e normalizzazione (rimangono invariate)
 @st.cache_data
 def load_database():
     url = "https://raw.githubusercontent.com/FantaElite/FantaElite/main/database_fantacalcio_v2.csv"
     try:
         df = pd.read_csv(url, encoding="utf-8", delimiter=';')
 
-        # Rimuove eventuali spazi prima e dopo i nomi delle colonne
         df.columns = df.columns.str.strip()
 
-        # Mappa i nuovi nomi delle colonne corretti
         column_mapping = {
             "Nome": "Nome",
             "Squadra": "Squadra",
@@ -25,26 +22,21 @@ def load_database():
 
         df.rename(columns=column_mapping, inplace=True)
 
-        # Controllo colonne mancanti
         expected_columns = list(column_mapping.values())
         missing_columns = [col for col in expected_columns if col not in df.columns]
         if missing_columns:
             st.error(f"Errore: Mancano le colonne {missing_columns} nel file CSV. Ecco le colonne trovate: {df.columns.tolist()}")
             return None
 
-        # Converti le colonne numeriche correggendo eventuali errori
         numeric_columns = ["Quota_Percentuale", "Fantamedia", "Media_Voto", "Partite_Voto"]
 
         for col in numeric_columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")  # Converte i valori non numerici in NaN
 
-        # Riempie solo i valori NaN con la media delle quotazioni esistenti
         df["Quota_Percentuale"].fillna(df["Quota_Percentuale"].mean(), inplace=True)
 
-        # Assicura che la colonna "Ruolo" sia trattata come stringa senza NaN
         df["Ruolo"] = df["Ruolo"].astype(str).str.strip().fillna("Sconosciuto")
 
-        # Convertiamo la quotazione in percentuale rispetto a un budget di 500 crediti
         df["Quota_Percentuale"] = (df["Quota_Percentuale"] / 500.0) * 100  # Converte in percentuale
 
         return df.to_dict(orient='records')
@@ -93,7 +85,6 @@ def generate_team(database, strategy="Equilibrata"):
         st.error(f"Strategia sconosciuta: {strategy}")
         return None, None
 
-    # Calcola il budget target per ruolo (basato sul 100%)
     target_budget_per_role = {}
     for role, (min_percentage, max_percentage) in budget_percentages.items():
         target_budget_per_role[role] = random.uniform(min_percentage, max_percentage) * 100  # Usa il 100%
@@ -123,22 +114,16 @@ def generate_team(database, strategy="Equilibrata"):
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
 
-        # Aggiustamento finale (più "intelligente")
         remaining_budget = 100 - total_cost_percentage
         if remaining_budget > 0:
-            # Ordina i giocatori per costo crescente
             sorted_players = sorted(database, key=lambda x: x['Quota_Percentuale'])
             for player in sorted_players:
                 if player not in selected_team and total_cost_percentage + player['Quota_Percentuale'] <= 100:
-                    # Aggiungi giocatore se non altera troppo le percentuali per ruolo
-                    # (implementa qui la logica per valutare l'impatto)
                     selected_team.append(player)
                     total_cost_percentage += player['Quota_Percentuale']
                     remaining_budget -= player['Quota_Percentuale']
                     if remaining_budget <= 0:
                         break
-
-        # ... (meccanismo di "correzione" - da implementare)
 
         if total_cost_percentage >= target_budget and total_cost_percentage <= 100 and len(selected_team) == 25:
             return selected_team, total_cost_percentage
@@ -152,16 +137,13 @@ def generate_team(database, strategy="Equilibrata"):
     return best_team, best_cost
 
 
-# Web App con Streamlit
 st.title("⚽ FantaElite - Team Gen ⚽")
 st.markdown("""---
 ### Scegli il tuo metodo di acquisto
 """)
 
-# Selezione tipo di pagamento
 payment_type = st.radio("Tipo di generazione", ["One Shot (1 strategia)", "Complete (2 strategie)"])
 
-# Selezione strategia di generazione
 strategies = ["Equilibrata", "Modificatore di Difesa"]
 
 if payment_type == "One Shot (1 strategia)":
@@ -177,5 +159,4 @@ if database is None:
 if st.button("️ Genera La Tua Squadra"):
     for strategy in strategy_list:
         team, total_cost_percentage = generate_team(database, strategy)
-        if team and total_cost_percentage >= 95 and len(team) == 25:
-            st.success(f
+        if team and total_cost_percentage >= 95 and len(team) == 25
