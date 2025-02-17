@@ -61,88 +61,54 @@ def export_to_csv(team):
 
 BUDGET_PERCENTAGES = {
     "Equilibrata": {
-        "Portiere": (0.06, 0.08),  # 6-8%
-        "Difensore": (0.11, 0.15),  # 11-15%
-        "Centrocampista": (0.24, 0.27),  # 24-27%
-        "Attaccante": (0.50, 0.59)  # 50-59%
+        "Portiere": (0.05, 0.10),  # Percentuali leggermente più ampie
+        "Difensore": (0.10, 0.18),
+        "Centrocampista": (0.20, 0.30),
+        "Attaccante": (0.45, 0.65)
     },
     "Modificatore di Difesa": {
-        "Portiere": (0.07, 0.09),  # 7-9%
-        "Difensore": (0.18, 0.22),  # 18-22%
-        "Centrocampista": (0.22, 0.25),  # 22-25%
-        "Attaccante": (0.45, 0.53)  # 45-53%
+        "Portiere": (0.06, 0.12),
+        "Difensore": (0.15, 0.25),
+        "Centrocampista": (0.20, 0.30),
+        "Attaccante": (0.40, 0.60)
     }
 }
 
 def generate_team(database, strategy="Equilibrata"):
-    ROLES = {
-        "Portiere": 3,
-        "Difensore": 8,
-        "Centrocampista": 8,
-        "Attaccante": 6
-    }
-
-    attempts = 0
-    max_attempts = 50
-    best_team = None
-    best_cost = 0
-    target_budget = 95
-
-    budget_percentages = BUDGET_PERCENTAGES.get(strategy)
-    if not budget_percentages:
-        st.error(f"Strategia sconosciuta: {strategy}")
-        return None, None
-
-    # Calcola il budget target per ruolo (basato sul 100%)
-    target_budget_per_role = {}
-    for role, (min_percentage, max_percentage) in budget_percentages.items():
-        target_budget_per_role[role] = random.uniform(min_percentage, max_percentage) * 100  # Usa il 100%
+    # ... (Codice iniziale come prima)
 
     while attempts < max_attempts:
-        selected_team = []
-        total_cost_percentage = 0
+        # ... (Selezione giocatori per ruolo come prima)
 
-        for role, count in ROLES.items():
-            role_budget = target_budget_per_role[role]
-
-            players = sorted(
-                [p for p in database if str(p['Ruolo']).strip() == role and p['Quota_Percentuale'] > 0],
-                key=lambda x: (x['Quota_Percentuale'] * 0.33 + x['Partite_Voto'] * 0.33 + x['Fantamedia'] * 0.34),
-                reverse=True
-            )
-
-            if not players or len(players) < count:
-                break
-
-            available_players = [p for p in players if p['Quota_Percentuale'] <= role_budget]
-            if len(available_players) < count:
-                break  # Non ci sono abbastanza giocatori disponibili con quel budget
-
-            sample_size = min(len(available_players), count * 3)  # Limita il sample ai giocatori disponibili
-            selected = random.sample(available_players[:sample_size], count)
-            selected_team.extend(selected)
-            total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
-
-        # Aggiustamento finale (più "intelligente")
+        # Aggiustamento finale (più "intelligente" e flessibile)
         remaining_budget = 100 - total_cost_percentage
-        if remaining_budget > 0:
-            # Ordina i giocatori per costo crescente
-            sorted_players = sorted(database, key=lambda x: x['Quota_Percentuale'])
-            for player in sorted_players:
-                if player not in selected_team and total_cost_percentage + player['Quota_Percentuale'] <= 100:
-                    # Aggiungi giocatore se non altera troppo le percentuali per ruolo
-                    selected_team.append(player)
-                    total_cost_percentage += player['Quota_Percentuale']
-                    remaining_budget -= player['Quota_Percentuale']
-                    if remaining_budget <= 0:
-                        break
 
-        if total_cost_percentage >= target_budget and total_cost_percentage <= 100 and len(selected_team) == 25:
+        # Calcola il budget *effettivo* per ruolo, tenendo conto dello sforamento
+        actual_budget_per_role = {}
+        for role in ROLES:
+            target_percentage = target_budget_per_role[role] / 100  # Converti in frazione
+            ideal_cost = target_percentage * 100  # Costo "ideale"
+            actual_budget_per_role[role] = min(ideal_cost + remaining_budget / len(ROLES), budget_percentages[strategy][role][1] * 100) # Massimo il limite superiore + quota parte budget rimanente
+
+        # Aggiungi giocatori mancanti, considerando il budget *effettivo*
+        for role, count in ROLES.items():
+            players_in_role = [p for p in selected_team if p['Ruolo'] == role]
+            missing_players = count - len(players_in_role)
+
+            if missing_players > 0:
+                available_players = sorted(
+                    [p for p in database if p['Ruolo'] == role and p not in selected_team and p['Quota_Percentuale'] <= actual_budget_per_role[role]],
+                    key=lambda x: (x['Quota_Percentuale'] * 0.33 + x['Partite_Voto'] * 0.33 + x['Fantamedia'] * 0.34),
+                    reverse=True
+                )
+                
+                players_to_add = available_players[:min(missing_players, len(available_players))]
+                selected_team.extend(players_to_add)
+                total_cost_percentage += sum(p['Quota_Percentuale'] for p in players_to_add)
+                remaining_budget -= sum(p['Quota_Percentuale'] for p in players_to_add)
+
+        if total_cost_percentage >= 95 and total_cost_percentage <= 100 and len(selected_team) == 25:
             return selected_team, total_cost_percentage
-
-        if total_cost_percentage > best_cost and len(selected_team) == 25:
-            best_team = selected_team
-            best_cost = total_cost_percentage
 
         attempts += 1
 
