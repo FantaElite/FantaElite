@@ -93,14 +93,17 @@ def generate_team(database, strategy="Equilibrata"):
         st.error(f"Strategia sconosciuta: {strategy}")
         return None, None
 
+    # Calcola il budget target per ruolo (basato sul 100%)
+    target_budget_per_role = {}
+    for role, (min_percentage, max_percentage) in budget_percentages.items():
+        target_budget_per_role[role] = random.uniform(min_percentage, max_percentage) * 100  # Usa il 100%
+
     while attempts < max_attempts:
         selected_team = []
         total_cost_percentage = 0
 
         for role, count in ROLES.items():
-            min_percentage, max_percentage = budget_percentages[role]
-            role_budget_percentage = random.uniform(min_percentage, max_percentage)
-            role_budget = role_budget_percentage * 100  # Budgeto per ruolo in percentuale
+            role_budget = target_budget_per_role[role]
 
             players = sorted(
                 [p for p in database if str(p['Ruolo']).strip() == role and p['Quota_Percentuale'] > 0],
@@ -120,15 +123,22 @@ def generate_team(database, strategy="Equilibrata"):
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
 
-        # Aggiustamento finale (rimane invariato)
-        if total_cost_percentage < target_budget:
-            sorted_players = sorted(database, key=lambda x: x['Quota_Percentuale'], reverse=True)
-            for p in sorted_players:
-                if p not in selected_team and total_cost_percentage + p['Quota_Percentuale'] <= 100:
-                    selected_team.append(p)
-                    total_cost_percentage += p['Quota_Percentuale']
-                if total_cost_percentage >= target_budget:
-                    break
+        # Aggiustamento finale (più "intelligente")
+        remaining_budget = 100 - total_cost_percentage
+        if remaining_budget > 0:
+            # Ordina i giocatori per costo crescente
+            sorted_players = sorted(database, key=lambda x: x['Quota_Percentuale'])
+            for player in sorted_players:
+                if player not in selected_team and total_cost_percentage + player['Quota_Percentuale'] <= 100:
+                    # Aggiungi giocatore se non altera troppo le percentuali per ruolo
+                    # (implementa qui la logica per valutare l'impatto)
+                    selected_team.append(player)
+                    total_cost_percentage += player['Quota_Percentuale']
+                    remaining_budget -= player['Quota_Percentuale']
+                    if remaining_budget <= 0:
+                        break
+
+        # ... (meccanismo di "correzione" - da implementare)
 
         if total_cost_percentage >= target_budget and total_cost_percentage <= 100 and len(selected_team) == 25:
             return selected_team, total_cost_percentage
@@ -168,17 +178,4 @@ if st.button("️ Genera La Tua Squadra"):
     for strategy in strategy_list:
         team, total_cost_percentage = generate_team(database, strategy)
         if team and total_cost_percentage >= 95 and len(team) == 25:
-            st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
-            st.write("### Squadra generata:")
-            st.write(pd.DataFrame(team))
-            csv_data = export_to_csv(team)
-            st.download_button(
-                label=f"⬇️ Scarica Squadra ({strategy})",
-                data=csv_data,
-                file_name=f"squadra_{strategy}.csv",
-                mime="text/csv"
-            )
-        elif team is not None and len(team) < 25:  # Riga elif COMPLETA e corretta
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Non è stato possibile completare tutti i ruoli.")
-        else:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo basso per formare una rosa completa.")
+            st.success(f
