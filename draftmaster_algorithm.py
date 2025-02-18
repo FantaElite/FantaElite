@@ -69,10 +69,10 @@ BUDGET_PERCENTAGES = {
         "Attaccante": 0.55
     },
     "Modificatore di Difesa": {
-        "Portiere": 0.08,
-        "Difensore": 0.20,
+        "Portiere": 0.09,
+        "Difensore": 0.21,
         "Centrocampista": 0.23,
-        "Attaccante": 0.49
+        "Attaccante": 0.47
     }
 }
 
