@@ -188,20 +188,6 @@ if st.button("️ Genera La Tua Squadra"):
                 break  # Interrompi il ciclo se una delle squadre non viene generata
 
         if len(teams) == 2:  # Verifica che entrambe le squadre siano state generate
-            # Crea un archivio ZIP in memoria
-            zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for strategy, data in csv_data.items():
-                    filename = f"squadra_{strategy}.csv"
-                    zipf.writestr(filename, data)
-
-            st.download_button(
-                label="⬇️ Scarica Squadre (Complete)",
-                data=zip_buffer.getvalue(),
-                file_name="squadre_complete.zip",
-                mime="application/zip"
-            )
-
             # Visualizza entrambe le squadre *correttamente*
             for strategy, team in teams.items():
                 st.write(f"### Squadra {strategy}:")
@@ -209,6 +195,25 @@ if st.button("️ Genera La Tua Squadra"):
                     df = pd.DataFrame(team)
                     if not df.empty:
                         st.dataframe(df)
+                    else:
+                        st.write("Nessun giocatore trovato per questa strategia.")
+                else:
+                    st.write("Nessun giocatore trovato per questa strategia.")
+
+            # Crea un archivio ZIP in memoria *dopo* aver visualizzato le squadre
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for strategy, data in csv_data.items():
+                    filename = f"squadra_{strategy}.csv"
+                    zipf.writestr(filename, data)
+
+            # Pulsante di download *dopo* la visualizzazione
+            st.download_button(
+                label="⬇️ Scarica Squadre (Complete)",
+                data=zip_buffer.getvalue(),
+                file_name="squadre_complete.zip",
+                mime="application/zip"
+            )
 
     else:  # Modalità One Shot (rimane invariata)
         for strategy in strategy_list:
@@ -221,6 +226,10 @@ if st.button("️ Genera La Tua Squadra"):
                     df = pd.DataFrame(team)
                     if not df.empty:
                         st.dataframe(df)
+                    else:
+                        st.write("Nessun giocatore trovato per questa strategia.")
+                else:
+                    st.write("Nessun giocatore trovato per questa strategia.")
 
                 csv_data = export_to_csv(team)
                 print(f"DEBUG: csv_data ({strategy}): {csv_data}")
