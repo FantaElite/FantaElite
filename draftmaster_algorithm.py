@@ -75,108 +75,33 @@ BUDGET_PERCENTAGES = {
 }
 
 def generate_team(database, strategy="Equilibrata"):
-    ROLES = {
-        "Portiere": 3,
-        "Difensore": 8,
-        "Centrocampista": 8,
-        "Attaccante": 6
-    }
-
-    attempts = 0
-    max_attempts = 50
-    best_team = None
-    best_cost = 0
-    target_budget = 95
-
-    budget_percentages = BUDGET_PERCENTAGES.get(strategy)
-    if not budget_percentages:
-        st.error(f"Strategia sconosciuta: {strategy}")
-        return None, None
-
-    # Calcola il budget target per ruolo (usando le percentuali esatte)
-    target_budget_per_role = {}
-    for role in ROLES:
-        target_budget_per_role[role] = budget_percentages[role] * 100  # Usa la percentuale esatta
-
-    while attempts < max_attempts:
-        selected_team = []
-        total_cost_percentage = 0
-
-        for role, count in ROLES.items():
-            role_budget = target_budget_per_role[role]
-
-            players = sorted(
-                [p for p in database if str(p['Ruolo']).strip() == role and p['Quota_Percentuale'] > 0],
-                key=lambda x: (x['Quota_Percentuale'] * 0.33 + x['Partite_Voto'] * 0.33 + x['Fantamedia'] * 0.34),
-                reverse=True
-            )
-
-            if not players or len(players) < count:
-                break
-
-            available_players = [p for p in players if p['Quota_Percentuale'] <= role_budget]
-            if len(available_players) < count:
-                break  # Non ci sono abbastanza giocatori disponibili con quel budget
-
-            sample_size = min(len(available_players), count * 3)  # Limita il sample ai giocatori disponibili
-            selected = random.sample(available_players[:sample_size], count)
-            selected_team.extend(selected)
-            total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
-
-        # Aggiustamento finale (con percentuali esatte)
-        remaining_budget = 100 - total_cost_percentage
-
-        # Aggiungi giocatori mancanti, usando il budget calcolato con le percentuali esatte
-        for role, count in ROLES.items():
-            players_in_role = [p for p in selected_team if p['Ruolo'] == role]
-            missing_players = count - len(players_in_role)
-
-            if missing_players > 0:
-                available_players = sorted(
-                    [p for p in database if p['Ruolo'] == role and p not in selected_team and p['Quota_Percentuale'] <= target_budget_per_role[role]], # Usa il budget calcolato con le percentuali esatte
-                    key=lambda x: (x['Quota_Percentuale'] * 0.33 + x['Partite_Voto'] * 0.33 + x['Fantamedia'] * 0.34),
-                    reverse=True
-                )
-                
-                players_to_add = available_players[:min(missing_players, len(available_players))]
-                selected_team.extend(players_to_add)
-                total_cost_percentage += sum(p['Quota_Percentuale'] for p in players_to_add)
-                remaining_budget -= sum(p['Quota_Percentuale'] for p in players_to_add)
-
-        if total_cost_percentage >= 95 and total_cost_percentage <= 100 and len(selected_team) == 25:
-            return selected_team, total_cost_percentage
-
-        if total_cost_percentage > best_cost and len(selected_team) == 25:
-            best_team = selected_team
-            best_cost = total_cost_percentage
-
-        attempts += 1
-
-    return best_team, best_cost
-
+    # ... (Codice generazione squadra, invariato)
 
 # Web App con Streamlit
 st.title("⚽ FantaElite - Team Gen ⚽")
-st.markdown("""---
-### Scegli il tuo metodo di acquisto
-""")
-
-# Selezione tipo di pagamento
-payment_type = st.radio("Tipo di generazione", ["One Shot (1 strategia)", "Complete (2 strategie)"])
-
-# Selezione strategia di generazione
-strategies = ["Equilibrata", "Modificatore di Difesa"]
-
-if payment_type == "One Shot (1 strategia)":
-    strategy = st.selectbox(" Seleziona la strategia di generazione", strategies)
-    strategy_list = [strategy]
-else:
-    strategy_list = strategies
-
-database = load_database()
-if database is None:
-    st.stop()
+# ... (Codice Streamlit invariato)
 
 if st.button("️ Genera La Tua Squadra"):
     for strategy in strategy_list:
-        team, total_cost_
+        team, total_cost_percentage = generate_team(database, strategy)  # Corretto!
+
+        print(f"DEBUG: Team (dopo generate_team): {team}") # Stampa 'team' per debug
+
+        if team and total_cost_percentage >= 95 and len(team) == 25:
+            st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
+            st.write("### Squadra generata:")
+            st.write(pd.DataFrame(team))  # Visualizza la squadra
+
+            csv_data = export_to_csv(team)
+            print(f"DEBUG: csv_data: {csv_data}")  # Stampa 'csv_data' per debug
+
+            st.download_button(
+                label=f"⬇️ Scarica Squadra ({strategy})",
+                data=csv_data,
+                file_name=f"squadra_{strategy}.csv",
+                mime="text/csv"
+            )
+        elif team is not None and len(team) < 25:
+            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Non è stato possibile completare tutti i ruoli.")
+        else:
+            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo basso per formare una rosa completa.")
