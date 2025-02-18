@@ -183,4 +183,4 @@ if st.button("️ Genera La Tua Squadra"):
 
         print(f"DEBUG: Team (dopo generate_team): {team}")  # Stampa 'team' per debug
 
-        if team and total_cost_percentage >= 95 and len(team) == 2
+        if team and total_cost_percentage >= 95 and len(team) == 25:
