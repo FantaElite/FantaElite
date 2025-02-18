@@ -172,7 +172,7 @@ if database is None:
     st.stop()
 
 if st.button("️ Genera La Tua Squadra"):
-    for strategy in strategy_list:
+    for strategy in strategy_list: #Corretto!
         team, total_cost_percentage = generate_team(database, strategy)
 
         print(f"DEBUG: Team (dopo generate_team - {strategy}): {team}")
@@ -187,7 +187,7 @@ if st.button("️ Genera La Tua Squadra"):
 
             st.download_button(
                 label=f"⬇️ Scarica Squadra ({strategy})",
- data=csv_data,
+ 		data=csv_data,
                 file_name=f"squadra_{strategy}.csv",
                 mime="text/csv"
             )
