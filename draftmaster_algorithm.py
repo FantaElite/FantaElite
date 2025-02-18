@@ -205,7 +205,10 @@ if st.button("️ Genera La Tua Squadra"):
             # Visualizza entrambe le squadre *correttamente*
             for strategy, team in teams.items():
                 st.write(f"### Squadra {strategy}:")
-                st.dataframe(pd.DataFrame(team).set_index([]))
+                if team:
+                    df = pd.DataFrame(team)
+                    if not df.empty:
+                        st.dataframe(df.set_index([]))
 
     else:  # Modalità One Shot (rimane invariata)
         for strategy in strategy_list:
@@ -214,8 +217,10 @@ if st.button("️ Genera La Tua Squadra"):
             if team and total_cost_percentage >= 95 and len(team) == 25:
                 st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
                 st.write("### Squadra generata:")
-                # Visualizza la squadra *correttamente*
-                st.dataframe(pd.DataFrame(team).set_index([]))
+                if team:
+                    df = pd.DataFrame(team)
+                    if not df.empty:
+                        st.dataframe(df.set_index([])))
 
                 csv_data = export_to_csv(team)
                 print(f"DEBUG: csv_data ({strategy}): {csv_data}")
