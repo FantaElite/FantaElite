@@ -181,4 +181,4 @@ if st.button("️ Genera La Tua Squadra"):
     for strategy in strategy_list:
         team, total_cost_percentage = generate_team(database, strategy)
         if team and total_cost_percentage >= 95 and len(team) == 25:
-            st.success(f"✅ Squadra generata con successo
+           st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
