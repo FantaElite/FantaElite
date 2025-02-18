@@ -86,17 +86,17 @@ def generate_team(database, strategy="Equilibrata"):
     max_attempts = 50
     best_team = None
     best_cost = 0
-    target_budget = 95
+
+    generated_teams = set() # Insieme per tenere traccia delle squadre generate (usando hash)
 
     budget_percentages = BUDGET_PERCENTAGES.get(strategy)
     if not budget_percentages:
         st.error(f"Strategia sconosciuta: {strategy}")
         return None, None
 
-    # Calcola il budget target per ruolo (usando le percentuali esatte)
     target_budget_per_role = {}
     for role in ROLES:
-        target_budget_per_role[role] = budget_percentages[role] * 100  # Usa la percentuale esatta
+        target_budget_per_role[role] = budget_percentages[role] * 100 # Usa le percentuali esatte
 
     while attempts < max_attempts:
         selected_team = []
@@ -116,32 +116,26 @@ def generate_team(database, strategy="Equilibrata"):
 
             available_players = [p for p in players if p['Quota_Percentuale'] <= role_budget]
             if len(available_players) < count:
-                break  # Non ci sono abbastanza giocatori disponibili con quel budget
+                break
 
-            sample_size = min(len(available_players), count * 3)  # Limita il sample ai giocatori disponibili
+            sample_size = min(len(available_players), count * 3)
             selected = random.sample(available_players[:sample_size], count)
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
 
-        # Aggiustamento finale (con percentuali esatte)
-        remaining_budget = 100 - total_cost_percentage
+        # Controllo di duplicati usando hash
+        team_hash = hash(tuple(sorted([p['Nome'] for p in selected_team]))) # Ordina i nomi per coerenza
+        if team_hash in generated_teams:
+            attempts += 1
+            continue # Salta al prossimo tentativo se la squadra è un duplicato
 
-        # Aggiungi giocatori mancanti, usando il budget calcolato con le percentuali esatte
-        for role, count in ROLES.items():
-            players_in_role = [p for p in selected_team if p['Ruolo'] == role]
-            missing_players = count - len(players_in_role)
+        generated_teams.add(team_hash) # Aggiungi l'hash della squadra all'insieme
 
-            if missing_players > 0:
-                available_players = sorted(
-                    [p for p in database if p['Ruolo'] == role and p not in selected_team and p['Quota_Percentuale'] <= target_budget_per_role[role]], # Usa il budget calcolato con le percentuali esatte
-                    key=lambda x: (x['Quota_Percentuale'] * 0.33 + x['Partite_Voto'] * 0.33 + x['Fantamedia'] * 0.34),
-                    reverse=True
-                )
-                
-                players_to_add = available_players[:min(missing_players, len(available_players))]
-                selected_team.extend(players_to_add)
-                total_cost_percentage += sum(p['Quota_Percentuale'] for p in players_to_add)
-                remaining_budget -= sum(p['Quota_Percentuale'] for p in players_to_add)
+        # Controllo e aggiustamento del budget (se necessario)
+        while total_cost_percentage > 100:
+            player_to_remove = random.choice(selected_team)
+            selected_team.remove(player_to_remove)
+            total_cost_percentage -= player_to_remove['Quota_Percentuale']
 
         if total_cost_percentage >= 95 and total_cost_percentage <= 100 and len(selected_team) == 25:
             return selected_team, total_cost_percentage
@@ -178,10 +172,10 @@ if database is None:
     st.stop()
 
 if st.button("️ Genera La Tua Squadra"):
-    for strategy in strategy_list:  # Corretto!
+    for strategy in strategy_list:
         team, total_cost_percentage = generate_team(database, strategy)
 
-        print(f"DEBUG: Team (dopo generate_team): {team}")
+        print(f"DEBUG: Team (dopo generate_team - {strategy}): {team}")
 
         if team and total_cost_percentage >= 95 and len(team) == 25:
             st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
@@ -189,15 +183,7 @@ if st.button("️ Genera La Tua Squadra"):
             st.write(pd.DataFrame(team))
 
             csv_data = export_to_csv(team)
-            print(f"DEBUG: csv_data: {csv_data}")
+            print(f"DEBUG: csv_data ({strategy}): {csv_data}")
 
             st.download_button(
                 label=f"⬇️ Scarica Squadra ({strategy})",
-                data=csv_data,
-                file_name=f"squadra_{strategy}.csv",
-                mime="text/csv"
-            )
-        elif team is not None and len(team) < 25:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Non è stato possibile completare tutti i ruoli.")
-        else:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo basso per formare una rosa completa.")
