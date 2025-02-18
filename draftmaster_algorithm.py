@@ -1,6 +1,8 @@
-import streamlit as st
+ import streamlit as st
 import pandas as pd
 import random
+import io
+import zipfile
 
 # Funzioni di caricamento e normalizzazione (rimangono invariate)
 @st.cache_data
@@ -172,26 +174,14 @@ if database is None:
     st.stop()
 
 if st.button("️ Genera La Tua Squadra"):
-    for strategy in strategy_list: #Corretto!
-        team, total_cost_percentage = generate_team(database, strategy)
-
-        print(f"DEBUG: Team (dopo generate_team - {strategy}): {team}")
-
-        if team and total_cost_percentage >= 95 and len(team) == 25:
-            st.success(f"✅ Squadra generata con successo ({strategy})! Costo totale: {total_cost_percentage:.2f}% del budget")
-            st.write("### Squadra generata:")
-            st.write(pd.DataFrame(team))
-
-            csv_data = export_to_csv(team)
-            print(f"DEBUG: csv_data ({strategy}): {csv_data}")
-
-            st.download_button(
-                label=f"⬇️ Scarica Squadra ({strategy})",
- 		data=csv_data,
-                file_name=f"squadra_{strategy}.csv",
-                mime="text/csv"
-            )
-        elif team is not None and len(team) < 25:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Non è stato possibile completare tutti i ruoli.")
-        else:
-            st.error(f"❌ Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo basso per formare una rosa completa.")
+    if payment_type == "Complete (2 strategie)":
+        teams = {}
+        csv_data = {}
+        for strategy in strategies:  # strategies contiene ora entrambe le strategie
+            team, total_cost_percentage = generate_team(database, strategy)
+            print(f"DEBUG: Team (dopo generate_team - {strategy}): {team}")
+            if team and total_cost_percentage >= 95 and len(team) == 25:
+                teams[strategy] = team
+                csv_data[strategy] = export_to_csv(team)
+            else:
+                st.error(f"Errore nella generazione della squadra ({strategy}). Il budget potrebbe essere troppo basso per formare una rosa completa.")
