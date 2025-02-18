@@ -208,7 +208,7 @@ if st.button("️ Genera La Tua Squadra"):
                 if team:
                     df = pd.DataFrame(team)
                     if not df.empty:
-                        st.dataframe(df.set_index([]))
+                        st.dataframe(df)
 
     else:  # Modalità One Shot (rimane invariata)
         for strategy in strategy_list:
@@ -220,7 +220,7 @@ if st.button("️ Genera La Tua Squadra"):
                 if team:
                     df = pd.DataFrame(team)
                     if not df.empty:
-                        st.dataframe(df.set_index([]))
+                        st.dataframe(df)
 
                 csv_data = export_to_csv(team)
                 print(f"DEBUG: csv_data ({strategy}): {csv_data}")
