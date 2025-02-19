@@ -91,7 +91,7 @@ def valuta_giocatore(giocatore):
 
 print(f"Giocatore: {giocatore['Nome']}, Quotazione: {quotazione}, Valutazione: {valutazione}")  # Stampa i valori
 
-        return valutazione
+return valutazione
 
 def generate_team(database, strategy="Equilibrata"):
     # ... (Il resto della funzione generate_team rimane in gran parte invariato)
