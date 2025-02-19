@@ -89,7 +89,7 @@ def valuta_giocatore(giocatore):
         # Caso giocatore con statistiche: valutazione "standard"
         valutazione = (quotazione * 0.3) + (partite_voto * 0.33) + (media_voto * 0.34)  #Pesi leggermente modificati
 
-     print(f"Giocatore: {giocatore['Nome']}, Quotazione: {quotazione}, Valutazione: {valutazione}")  # Stampa i valori
+    print(f"Giocatore: {giocatore['Nome']}, Quotazione: {quotazione}, Valutazione: {valutazione}")  # Stampa i valori
 
     return valutazione
 
