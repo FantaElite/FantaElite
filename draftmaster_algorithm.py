@@ -110,7 +110,7 @@ def generate_team(database, strategy="Equilibrata"):
 
 available_players = [p for p in players if p['Quota_Percentuale'] <= role_budget]
 
-    return best_team, best_cost
+   return best_team, best_cost
 
 def generate_team(database, strategy="Equilibrata"):
     ROLES = {
