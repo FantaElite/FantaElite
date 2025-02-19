@@ -93,9 +93,6 @@ print(f"Giocatore: {giocatore['Nome']}, Quotazione: {quotazione}, Valutazione: {
 
     return valutazione
 
-    return valutazione
-
-
 def generate_team(database, strategy="Equilibrata"):
     # ... (Il resto della funzione generate_team rimane in gran parte invariato)
 
