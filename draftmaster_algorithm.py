@@ -171,7 +171,7 @@ def generate_team(database, strategy="Equilibrata"):
         generated_teams.add(team_hash) # Aggiungi l'hash della squadra all'insieme
 
         # Controllo e aggiustamento del budget (se necessario)
-        while total_cost_percentage > 100:
+    while total_cost_percentage > 100:
             player_to_remove = random.choice(selected_team)
             selected_team.remove(player_to_remove)
             total_cost_percentage -= player_to_remove['Quota_Percentuale']
@@ -185,7 +185,7 @@ def generate_team(database, strategy="Equilibrata"):
 
         attempts += 1
 
-     return best_team, best_cost
+    return best_team, best_cost
 
 
 # Web App con Streamlit
