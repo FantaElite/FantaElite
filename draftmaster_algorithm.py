@@ -89,7 +89,7 @@ def valuta_giocatore(giocatore):
         # Caso giocatore con statistiche: valutazione "standard"
         valutazione = (quotazione * 0.3) + (partite_voto * 0.33) + (media_voto * 0.34)  #Pesi leggermente modificati
 
-print(f"Giocatore: {giocatore['Nome']}, Quotazione: {quotazione}, Valutazione: {valutazione}")  # Stampa i valori
+     print(f"Giocatore: {giocatore['Nome']}, Quotazione: {quotazione}, Valutazione: {valutazione}")  # Stampa i valori
 
     return valutazione
 
@@ -100,13 +100,15 @@ def generate_team(database, strategy="Equilibrata"):
         # ... (Selezione giocatori per ruolo)
 
       players = sorted(
-    [p for p in database if str(p['Ruolo']).strip() == role and p['Quota_Percentuale'] > 0],
-    key=lambda x: valuta_giocatore(x),  # Usa la funzione di valutazione modificata
-    reverse=True
-)
+            [p for p in database if str(p['Ruolo']).strip() == role and p['Quota_Percentuale'] > 0],
+            key=lambda x: valuta_giocatore(x),  # Usa la funzione di valutazione modificata
+            reverse=True
+        )
 
 for player in players:
-    print(f"Giocatore considerato: {player['Nome']}, Quotazione: {player['Quota_Percentuale']}")  # Stampa i giocatori considerati
+            print(f"Giocatore considerato: {player['Nome']}, Quotazione: {player['Quota_Percentuale']}")  # Stampa i giocatori considerati
+
+available_players = [p for p in players if p['Quota_Percentuale'] <= role_budget]
 
 def generate_team(database, strategy="Equilibrata"):
     ROLES = {
