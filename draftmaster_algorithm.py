@@ -76,6 +76,34 @@ BUDGET_PERCENTAGES = {
     }
 }
 
+def valuta_giocatore(giocatore):
+    quotazione = giocatore['Quota_Percentuale']
+    partite_voto = giocatore['Partite_Voto']
+    media_voto = giocatore['Media_Voto']
+    fanta_media = giocatore['Fantamedia']
+
+    if partite_voto == 0 and media_voto == 0 and fanta_media == 0:
+        # Caso giocatore nuovo: valutazione basata principalmente sulla quotazione
+        valutazione = quotazione * 1.5  # Puoi sperimentare con questo moltiplicatore
+    else:
+        # Caso giocatore con statistiche: valutazione "standard"
+        valutazione = (quotazione * 0.3) + (partite_voto * 0.33) + (media_voto * 0.34)  #Pesi leggermente modificati
+
+    return valutazione
+
+
+def generate_team(database, strategy="Equilibrata"):
+    # ... (Il resto della funzione generate_team rimane in gran parte invariato)
+
+    while attempts < max_attempts:
+        # ... (Selezione giocatori per ruolo)
+
+      players = sorted(
+    [p for p in database if str(p['Ruolo']).strip() == role and p['Quota_Percentuale'] > 0],
+    key=lambda x: valuta_giocatore(x),  # Usa la funzione di valutazione modificata
+    reverse=True
+)
+
 def generate_team(database, strategy="Equilibrata"):
     ROLES = {
         "Portiere": 3,
