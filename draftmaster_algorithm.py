@@ -87,30 +87,11 @@ def valuta_giocatore(giocatore):
         valutazione = quotazione * 4.5  # Puoi sperimentare con questo moltiplicatore
     else:
         # Caso giocatore con statistiche: valutazione "standard"
-        valutazione = (quotazione * 0.3) + (partite_voto * 0.33) + (media_voto * 0.34)  #Pesi leggermente modificati
+        valutazione = (quotazione * 0.3) + (partite_voto * 0.33) + (media_voto * 0.34)  # Pesi leggermente modificati
 
     print(f"Giocatore: {giocatore['Nome']}, Quotazione: {quotazione}, Valutazione: {valutazione}")  # Stampa i valori
 
     return valutazione
-
-def generate_team(database, strategy="Equilibrata"):
-    # ... (Il resto della funzione generate_team rimane in gran parte invariato)
-
-    while attempts < max_attempts:
-        # ... (Selezione giocatori per ruolo)
-
-      players = sorted(
-            [p for p in database if str(p['Ruolo']).strip() == role and p['Quota_Percentuale'] > 0],
-            key=lambda x: valuta_giocatore(x),  # Usa la funzione di valutazione modificata
-            reverse=True
-        )
-
-    for player in players:
-            print(f"Giocatore considerato: {player['Nome']}, Quotazione: {player['Quota_Percentuale']}")  # Stampa i giocatori considerati
-
-available_players = [p for p in players if p['Quota_Percentuale'] <= role_budget]
-
-   return best_team, best_cost
 
 def generate_team(database, strategy="Equilibrata"):
     ROLES = {
@@ -145,20 +126,24 @@ def generate_team(database, strategy="Equilibrata"):
 
             players = sorted(
                 [p for p in database if str(p['Ruolo']).strip() == role and p['Quota_Percentuale'] > 0],
-                key=lambda x: (x['Quota_Percentuale'] * 0.33 + x['Partite_Voto'] * 0.33 + x['Fantamedia'] * 0.34),
+                key=lambda x: valuta_giocatore(x),  # Usa la funzione di valutazione modificata
                 reverse=True
             )
+
+            for player in players:
+                print(f"Giocatore considerato: {player['Nome']}, Quotazione: {player['Quota_Percentuale']}")  # Stampa i giocatori considerati
 
             if not players or len(players) < count:
                 break
 
-            
+            available_players = [p for p in players if p['Quota_Percentuale'] <= role_budget]
+
             if len(available_players) < count:
                 break
 
             sample_size = min(len(available_players), count * 3)
-            available_players = [p for p in players if p['Quota_Percentuale'] <= role_budget]
-            selected = random.sample(available_players[:sample_size], count)
+            available_players_sorted = sorted(available_players, key=lambda x: valuta_giocatore(x), reverse=True)
+            selected = random.sample(available_players_sorted[:sample_size], count)
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
 
@@ -171,7 +156,7 @@ def generate_team(database, strategy="Equilibrata"):
         generated_teams.add(team_hash) # Aggiungi l'hash della squadra all'insieme
 
         # Controllo e aggiustamento del budget (se necessario)
-    while total_cost_percentage > 100:
+        while total_cost_percentage > 100:
             player_to_remove = random.choice(selected_team)
             selected_team.remove(player_to_remove)
             total_cost_percentage -= player_to_remove['Quota_Percentuale']
