@@ -105,10 +105,12 @@ def generate_team(database, strategy="Equilibrata"):
             reverse=True
         )
 
-for player in players:
+    for player in players:
             print(f"Giocatore considerato: {player['Nome']}, Quotazione: {player['Quota_Percentuale']}")  # Stampa i giocatori considerati
 
 available_players = [p for p in players if p['Quota_Percentuale'] <= role_budget]
+
+    return best_team, best_cost
 
 def generate_team(database, strategy="Equilibrata"):
     ROLES = {
