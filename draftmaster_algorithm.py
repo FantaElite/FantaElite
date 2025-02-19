@@ -152,11 +152,12 @@ def generate_team(database, strategy="Equilibrata"):
             if not players or len(players) < count:
                 break
 
-            available_players = [p for p in players if p['Quota_Percentuale'] <= role_budget]
+            
             if len(available_players) < count:
                 break
 
             sample_size = min(len(available_players), count * 3)
+            available_players = [p for p in players if p['Quota_Percentuale'] <= role_budget]
             selected = random.sample(available_players[:sample_size], count)
             selected_team.extend(selected)
             total_cost_percentage += sum(p['Quota_Percentuale'] for p in selected)
