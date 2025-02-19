@@ -185,7 +185,7 @@ def generate_team(database, strategy="Equilibrata"):
 
         attempts += 1
 
-    return best_team, best_cost
+     return best_team, best_cost
 
 
 # Web App con Streamlit
