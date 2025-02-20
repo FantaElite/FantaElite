@@ -3,6 +3,7 @@ import pandas as pd
 import random
 import io
 import zipfile
+import cProfile  # Importa il modulo cProfile
 
 # Funzioni di caricamento e normalizzazione (rimangono invariate)
 @st.cache_data
@@ -93,8 +94,6 @@ def valuta_giocatore(giocatore):
 
     return valutazione
 
-import cProfile
-
 def generate_team(database, strategy="Equilibrata"):
     ROLES = {
         "Portiere": 3,
@@ -173,6 +172,18 @@ def generate_team(database, strategy="Equilibrata"):
         attempts += 1
 
     return best_team, best_cost
+
+# Codice per il profiling
+profiler = cProfile.Profile()  # Crea un oggetto profiler
+profiler.enable()  # Inizia il profiling
+
+# Esegui la funzione generate_team (o la parte di codice che vuoi profilare)
+team, cost = generate_team(database, "Equilibrata")  # Esegui la funzione
+
+profiler.disable()  # Termina il profiling
+
+# Stampa i risultati del profiling
+profiler.print_stats(sort='time')  # Stampa le statistiche ordinate per tempo
 
 
 # Web App con Streamlit
