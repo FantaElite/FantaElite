@@ -84,7 +84,7 @@ def valuta_giocatore(giocatore):
 
     if partite_voto == 0 and media_voto == 0 and fanta_media == 0:
         # Caso giocatore nuovo: valutazione basata principalmente sulla quotazione
-        valutazione = quotazione * 4.5  # Puoi sperimentare con questo moltiplicatore
+        valutazione = quotazione * 2.5  # Puoi sperimentare con questo moltiplicatore
     else:
         # Caso giocatore con statistiche: valutazione "standard"
         valutazione = (quotazione * 0.3) + (partite_voto * 0.33) + (media_voto * 0.34)  # Pesi leggermente modificati
@@ -141,7 +141,7 @@ def generate_team(database, strategy="Equilibrata"):
             if len(available_players) < count:
                 break
 
-            sample_size = min(len(available_players), count * 3)
+            sample_size = min(len(available_players), count * 50)
             available_players_sorted = sorted(available_players, key=lambda x: valuta_giocatore(x), reverse=True)
             selected = random.sample(available_players_sorted[:sample_size], count)
             selected_team.extend(selected)
