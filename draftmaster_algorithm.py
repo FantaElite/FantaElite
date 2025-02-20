@@ -93,6 +93,8 @@ def valuta_giocatore(giocatore):
 
     return valutazione
 
+import cProfile
+
 def generate_team(database, strategy="Equilibrata"):
     ROLES = {
         "Portiere": 3,
