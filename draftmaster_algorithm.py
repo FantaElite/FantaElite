@@ -141,7 +141,7 @@ def generate_team(database, strategy="Equilibrata"):
             if len(available_players) < count:
                 break
 
-            sample_size = min(len(available_players), count * 50)
+            sample_size = min(len(available_players), count * 1)
             available_players_sorted = sorted(available_players, key=lambda x: valuta_giocatore(x), reverse=True)
             selected = random.sample(available_players_sorted[:sample_size], count)
             selected_team.extend(selected)
