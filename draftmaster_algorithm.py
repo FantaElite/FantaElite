@@ -114,25 +114,25 @@ def generate_team(df, strategy="Equilibrata"): # Riceve il DataFrame 'df'
         selected_team = []
         total_cost_percentage = 0
 
-        for role, count in ROLES.items():
-            role_budget = target_budget_per_role[role]
+  for role, count in ROLES.items():
+    role_budget = target_budget_per_role[role]
 
-            # Filtraggio efficiente con pandas
-            role_df = df[(df["Ruolo"] == role) & (df["Quota_Percentuale"] > 0)]
+    # Filtraggio efficiente con pandas
+    role_df = df[(df["Ruolo"] == role) & (df["Quota_Percentuale"] > 0)]
 
-          # *** INSERISCI QUI IL CODICE CORRETTO ***
-    players = role_df.copy()
-    players['Valutazione'] = players.apply(lambda row: valuta_giocatore(row.to_dict()), axis=1)
-    players = players.sort_values(by='Valutazione', ascending=False)
+    # *** INSERISCI QUI IL CODICE CORRETTO ***
+    players = role_df.copy()  # Indentazione di UN LIVELLO
+    players['Valutazione'] = players.apply(lambda row: valuta_giocatore(row.to_dict()), axis=1)  # Indentazione di UN LIVELLO
+    players = players.sort_values(by='Valutazione', ascending=False)  # Indentazione di UN LIVELLO
     # *** FINE DEL CODICE DA INSERIRE ***
 
-            if players.empty or len(players) < count:
-                break
+    if players.empty or len(players) < count:  # Indentazione di UN LIVELLO
+        break  # Indentazione di DUE LIVELLI (sotto l'if)
 
-            available_players = players[players["Quota_Percentuale"] <= role_budget]
+    available_players = players[players["Quota_Percentuale"] <= role_budget]  # Indentazione di UN LIVELLO
 
-            if len(available_players) < count:
-                break
+    if len(available_players) < count:  # Indentazione di UN LIVELLO
+        break  # Indentazione di DUE LIVELLI (sotto l'if)
 
             sample_size = min(len(available_players), count * 3)
             available_players_sorted = available_players.sort_values(by=lambda x: x.apply(valuta_giocatore), ascending=False) # Ordina i giocatori disponibili
