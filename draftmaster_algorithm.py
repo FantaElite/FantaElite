@@ -242,12 +242,12 @@ if st.button("️ Genera La Tua Squadra"):
         mime="application/zip" if payment_type == "Complete (2 strategie)" else "text/csv"  # MIME type dinamico
     )
 
-if st.button("Esegui Profiling"):
-    profiler = cProfile.Profile()
-    profiler.enable()
+# if st.button("Esegui Profiling"):
+#     profiler = cProfile.Profile()
+#     profiler.enable()
 
-    for strategy in strategy_list:  # Esegui il profiling per ogni strategia selezionata
-        generate_team(database, strategy)
+#     for strategy in strategy_list:  # Esegui il profiling per ogni strategia selezionata
+#         generate_team(database, strategy)
 
-    profiler.disable()
-    profiler.print_stats(sort='time')
+#     profiler.disable()
+#     profiler.print_stats(sort='time')
