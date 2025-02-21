@@ -126,7 +126,7 @@ def generate_team(df, strategy="Equilibrata"): # Riceve il DataFrame 'df'
     players = players.sort_values(by='Valutazione', ascending=False)
     # *** FINE DEL CODICE DA INSERIRE ***
 
-        if players.empty or len(players) < count:
+            if players.empty or len(players) < count:
                 break
 
             available_players = players[players["Quota_Percentuale"] <= role_budget]
