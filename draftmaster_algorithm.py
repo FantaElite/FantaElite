@@ -120,8 +120,11 @@ def generate_team(df, strategy="Equilibrata"): # Riceve il DataFrame 'df'
             # Filtraggio efficiente con pandas
             role_df = df[(df["Ruolo"] == role) & (df["Quota_Percentuale"] > 0)]
 
-            # Ordinamento efficiente con pandas
-            players = role_df.sort_values(by=lambda x: x.apply(valuta_giocatore), ascending=False)
+             # *** INSERISCI QUI IL CODICE CORRETTO ***
+             players = role_df.copy()
+             players['Valutazione'] = players.apply(lambda row: valuta_giocatore(row.to_dict()), axis=1)
+             players = players.sort_values(by='Valutazione', ascending=False)
+    # *** FINE DEL CODICE DA INSERIRE ***
 
             if players.empty or len(players) < count:
                 break
